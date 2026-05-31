@@ -561,8 +561,23 @@ function startClock(){
 }
 
 // ===== INIT =====
-const __DATA__ = __DATA_PLACEHOLDER__;
-D = __DATA__;
+fetch("https://script.google.com/macros/s/AKfycbzXGZ3_zghrKx8ybOI3KLQqLXRpfzNwsN2lUl4u_1DNHRlSaifbxHZToBHHm5di-uplfQ/exec")
+  .then(res => res.json())
+  .then(data => {
+    console.log("Loaded data:", data); // debug
+
+    D = data;
+
+    initFilters();
+    initHrsDateFilter();
+    initIndivFilter();
+    renderAll();
+
+  })
+  .catch(err => {
+    console.error("โหลด data ไม่ได้", err);
+  });
+``
 initFilters();
 initHrsDateFilter();
 initIndivFilter();
