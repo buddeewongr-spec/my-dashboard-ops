@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>NEO Outbound Command Center</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root[data-theme="dark"]{
+  --bg0:#050814; --bg1:#0a0f23; --bg2:#0f1530; --bg3:#161e3d; --bg4:#1d2750;
+  --border:rgba(120,180,255,0.08); --border2:rgba(120,180,255,0.18); --border3:rgba(120,180,255,0.35);
+  --text:#e6eeff; --text2:#94a8c8; --text3:#5d7299;
+  --accent:#3b82f6; --accent2:#60a5fa; --accent-glow:rgba(59,130,246,.45);
+  --cyan:#06d4e8; --cyan-glow:rgba(6,212,232,.5);
+  --purple:#a855f7; --purple-glow:rgba(168,85,247,.5);
+  --green:#10dc8b; --green-glow:rgba(16,220,139,.5);
+  --amber:#fbbf24; --amber-glow:rgba(251,191,36,.5);
+  --red:#ef4444; --red-glow:rgba(239,68,68,.5);
+  --pink:#ec4899; --pink-glow:rgba(236,72,153,.5);
+  --grid-color:rgba(120,180,255,0.04);
+  --glass:rgba(15,21,48,0.6);
+  --glass-strong:rgba(15,21,48,0.85);
+}
+:root[data-theme="light"]{
+  --bg0:#f0f4fa; --bg1:#ffffff; --bg2:#f7f9fd; --bg3:#eef2f9; --bg4:#e1e8f3;
+  --border:rgba(59,130,246,0.12); --border2:rgba(59,130,246,0.25); --border3:rgba(59,130,246,0.4);
+  --text:#0f172a; --text2:#475569; --text3:#94a3b8;
+  --accent:#2563eb; --accent2:#3b82f6; --accent-glow:rgba(37,99,235,.25);
+  --cyan:#0891b2; --cyan-glow:rgba(8,145,178,.25);
+  --purple:#9333ea; --purple-glow:rgba(147,51,234,.25);
+  --green:#059669; --green-glow:rgba(5,150,105,.25);
+  --amber:#d97706; --amber-glow:rgba(217,119,6,.25);
+  --red:#dc2626; --red-glow:rgba(220,38,38,.25);
+  --pink:#db2777; --pink-glow:rgba(219,39,119,.25);
+  --grid-color:rgba(59,130,246,0.05);
+  --glass:rgba(255,255,255,0.7);
+  --glass-strong:rgba(255,255,255,0.95);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{font-family:'IBM Plex Sans Thai',sans-serif;background:var(--bg0);color:var(--text);font-size:13px;min-height:100vh;overflow-x:hidden;transition:background .4s,color .4s}
+
+/* ANIMATED BG */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    linear-gradient(var(--grid-color) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid-color) 1px,transparent 1px);
+  background-size:60px 60px;
+  mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,#000 30%,transparent 90%);
+  -webkit-mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,#000 30%,transparent 90%);
+}
+body::after{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(circle at 15% 20%,var(--accent-glow) 0%,transparent 30%),
+    radial-gradient(circle at 85% 80%,var(--purple-glow) 0%,transparent 30%),
+    radial-gradient(circle at 50% 50%,var(--cyan-glow) 0%,transparent 50%);
+  opacity:.15;animation:bgpulse 10s ease-in-out infinite alternate;
+}
+@keyframes bgpulse{0%{opacity:.1;transform:scale(1)}100%{opacity:.2;transform:scale(1.05)}}
+
+/* SCAN LINE */
+.scan-line{position:fixed;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),transparent);z-index:200;animation:scan 8s linear infinite;pointer-events:none;opacity:.4}
+@keyframes scan{0%{transform:translateY(0)}100%{transform:translateY(100vh)}}
+
+/* SIDEBAR */
+.sidebar{position:fixed;left:0;top:0;width:230px;height:100vh;background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;transition:all .3s}
+.logo{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;position:relative}
+.logo::after{content:'';position:absolute;bottom:-1px;left:20px;right:20px;height:1px;background:linear-gradient(90deg,transparent,var(--cyan-glow),transparent)}
+.logo-icon{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;box-shadow:0 0 20px var(--accent-glow);position:relative}
+.logo-icon::before{content:'';position:absolute;inset:-2px;border-radius:12px;background:linear-gradient(135deg,var(--cyan),var(--purple));z-index:-1;opacity:.5;filter:blur(10px);animation:logopulse 3s ease-in-out infinite}
+@keyframes logopulse{0%,100%{opacity:.3}50%{opacity:.7}}
+.logo-text{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.2px;color:var(--text);line-height:1.2}
+.logo-sub{font-size:9px;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;font-weight:500;margin-top:2px}
+.nav{flex:1;padding:14px 0;overflow-y:auto}
+.nav::-webkit-scrollbar{width:4px}
+.nav::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.nav-section{padding:10px 18px 4px;font-size:9px;font-weight:700;color:var(--text3);letter-spacing:2px;text-transform:uppercase;font-family:'Orbitron',sans-serif}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 20px;cursor:pointer;color:var(--text2);transition:.2s;border-left:3px solid transparent;font-size:12px;font-weight:500;position:relative;overflow:hidden}
+.nav-item:hover{background:rgba(120,180,255,.04);color:var(--text);padding-left:24px}
+.nav-item.active{background:linear-gradient(90deg,var(--accent-glow),transparent);color:var(--cyan);border-left-color:var(--cyan);box-shadow:inset 0 0 20px var(--accent-glow)}
+.nav-item.active::after{content:'';position:absolute;right:14px;top:50%;transform:translateY(-50%);width:4px;height:4px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);animation:dotpulse 1.5s ease-in-out infinite}
+@keyframes dotpulse{0%,100%{transform:translateY(-50%) scale(1);opacity:1}50%{transform:translateY(-50%) scale(1.4);opacity:.5}}
+.nav-icon{font-size:16px;flex-shrink:0;width:18px;text-align:center}
+.sidebar-foot{padding:14px 18px;border-top:1px solid var(--border);position:relative}
+.sidebar-foot::before{content:'';position:absolute;top:-1px;left:20px;right:20px;height:1px;background:linear-gradient(90deg,transparent,var(--purple-glow),transparent)}
+.clock-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green-glow);animation:livepulse 1.5s ease-in-out infinite}
+@keyframes livepulse{0%,100%{opacity:1}50%{opacity:.4}}
+.clock-val{font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--cyan);font-weight:600;text-shadow:0 0 12px var(--cyan-glow);letter-spacing:1px}
+.clock-date{font-size:10px;color:var(--text3);letter-spacing:.5px}
+.theme-toggle{margin-top:10px;width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:8px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:11px;display:flex;align-items:center;justify-content:center;gap:6px;transition:.2s}
+.theme-toggle:hover{border-color:var(--border3);color:var(--text)}
+
+/* MAIN */
+.main{margin-left:230px;min-height:100vh;display:flex;flex-direction:column;position:relative;z-index:1}
+.topbar{background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:50;animation:slideDown .5s ease}
+@keyframes slideDown{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.topbar-title{flex:1;min-width:200px}
+.topbar-title h1{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;color:var(--text);text-transform:uppercase}
+.topbar-title h1 span{color:var(--cyan);text-shadow:0 0 12px var(--cyan-glow)}
+.topbar-title p{font-size:11px;color:var(--text3);margin-top:2px;letter-spacing:.5px}
+.filter-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.filter-label{font-size:10px;color:var(--text3);flex-shrink:0;letter-spacing:1px;text-transform:uppercase;font-weight:600}
+select,input[type=date],input[type=text]{background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:7px 11px;border-radius:7px;font-size:11px;font-family:inherit;cursor:pointer;outline:none;transition:.2s}
+select:hover,input:hover{border-color:var(--border3)}
+select:focus,input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px var(--cyan-glow)}
+.btn{padding:8px 16px;border-radius:8px;font-size:11px;font-family:inherit;cursor:pointer;border:1px solid var(--border2);transition:.2s;font-weight:600;letter-spacing:.5px;background:var(--bg3);color:var(--text);display:inline-flex;align-items:center;gap:6px;position:relative;overflow:hidden}
+.btn:hover{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 16px var(--cyan-glow)}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;border:none;box-shadow:0 0 20px var(--accent-glow)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 24px var(--accent-glow);color:#fff}
+.btn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.1),transparent);transform:translateX(-100%);transition:.5s}
+.btn:hover::before{transform:translateX(100%)}
+
+/* AUTO-REFRESH INDICATOR */
+.refresh-status{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:.5px}
+.refresh-status .live-dot{width:6px;height:6px}
+
+/* VIEW TOGGLE */
+.view-toggle{display:flex;gap:3px;background:var(--bg3);padding:3px;border-radius:9px;border:1px solid var(--border2)}
+.view-btn{padding:6px 14px;border-radius:6px;font-size:11px;cursor:pointer;color:var(--text3);background:none;border:none;font-family:inherit;font-weight:500;transition:.2s;white-space:nowrap}
+.view-btn:hover{color:var(--text)}
+.view-btn.active{background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;box-shadow:0 0 14px var(--accent-glow)}
+
+/* CONTENT */
+.content{padding:20px 24px 40px;flex:1}
+.page{display:none}
+.page.active{display:block;animation:pageIn .5s ease}
+@keyframes pageIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px}
+.kpi-card{background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:14px;padding:16px 18px;position:relative;overflow:hidden;transition:.3s;cursor:pointer;animation:cardIn .6s ease backwards}
+.kpi-card:nth-child(1){animation-delay:.05s}
+.kpi-card:nth-child(2){animation-delay:.1s}
+.kpi-card:nth-child(3){animation-delay:.15s}
+.kpi-card:nth-child(4){animation-delay:.2s}
+.kpi-card:nth-child(5){animation-delay:.25s}
+.kpi-card:nth-child(6){animation-delay:.3s}
+.kpi-card:nth-child(7){animation-delay:.35s}
+.kpi-card:nth-child(8){animation-delay:.4s}
+@keyframes cardIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kpi-color,var(--accent));box-shadow:0 0 16px var(--kpi-color,var(--accent))}
+.kpi-card::after{content:'';position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle at top right,var(--kpi-color,var(--accent)),transparent 70%);opacity:.12;pointer-events:none}
+.kpi-card:hover{border-color:var(--kpi-color,var(--cyan));transform:translateY(-3px);box-shadow:0 8px 32px var(--accent-glow)}
+.kpi-icon{position:absolute;right:14px;top:14px;font-size:22px;opacity:.4;transition:.3s}
+.kpi-card:hover .kpi-icon{opacity:.8;transform:scale(1.1) rotate(5deg)}
+.kpi-label{font-size:10px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;font-weight:600;font-family:'Orbitron',sans-serif}
+.kpi-val{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:var(--text);line-height:1;letter-spacing:-.5px}
+.kpi-val[data-glow]{text-shadow:0 0 20px var(--kpi-color,var(--accent-glow))}
+.kpi-sub{font-size:10px;margin-top:8px;color:var(--text3);display:flex;align-items:center;gap:4px}
+.kpi-up{color:var(--green)} .kpi-dn{color:var(--red)}
+
+/* GLOW EFFECT INSIDE CARD */
+.kpi-shimmer{position:absolute;bottom:0;left:0;right:0;height:30px;background:linear-gradient(180deg,transparent,var(--kpi-color));opacity:.04;pointer-events:none}
+
+/* CHART CARDS */
+.chart-grid{display:grid;gap:14px;margin-bottom:22px}
+.chart-grid-2{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.chart-grid-3{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.chart-card{background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:14px;padding:18px;position:relative;overflow:hidden;animation:cardIn .6s ease backwards;transition:.3s}
+.chart-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--border3),transparent)}
+.chart-card:hover{border-color:var(--border2)}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:8px;flex-wrap:wrap}
+.chart-title{font-size:11px;font-weight:700;color:var(--text);letter-spacing:1.5px;text-transform:uppercase;font-family:'Orbitron',sans-serif;display:flex;align-items:center;gap:8px}
+.chart-title::before{content:'';width:3px;height:14px;background:linear-gradient(180deg,var(--cyan),var(--accent));border-radius:2px;box-shadow:0 0 8px var(--cyan-glow)}
+.chart-badge{font-size:10px;padding:4px 10px;border-radius:14px;background:rgba(6,212,232,.12);color:var(--cyan);border:1px solid rgba(6,212,232,.25);font-family:'JetBrains Mono',monospace;font-weight:600}
+.chart-wrap{position:relative}
+
+/* STATUS FLOW with circles + arrows */
+.status-flow{display:flex;align-items:center;justify-content:space-between;gap:0;margin-bottom:22px;background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:14px;padding:20px 18px;position:relative;overflow:hidden}
+.status-flow::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--border3),transparent)}
+.sf-node{display:flex;flex-direction:column;align-items:center;flex:1;min-width:80px;position:relative;z-index:2}
+.sf-circle{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;background:var(--bg3);border:2px solid var(--sf-color,var(--accent));margin-bottom:8px;position:relative;transition:.3s;box-shadow:0 0 0 5px rgba(120,180,255,.04),0 0 18px var(--sf-color-glow,var(--accent-glow))}
+.sf-circle::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:1px dashed var(--sf-color,var(--accent));opacity:.4;animation:rotateDash 12s linear infinite}
+@keyframes rotateDash{to{transform:rotate(360deg)}}
+.sf-node:hover .sf-circle{transform:scale(1.1);box-shadow:0 0 0 8px rgba(120,180,255,.06),0 0 28px var(--sf-color-glow,var(--accent-glow))}
+.sf-name{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;font-weight:600;font-family:'Orbitron',sans-serif;text-align:center}
+.sf-val{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;color:var(--text);text-shadow:0 0 12px var(--sf-color-glow,var(--accent-glow));letter-spacing:.5px}
+.sf-pct{font-size:10px;color:var(--text2);margin-top:2px;font-family:'JetBrains Mono',monospace}
+.sf-arrow{flex:0 0 auto;color:var(--text3);font-size:18px;margin:0 6px;align-self:flex-start;margin-top:18px;position:relative;animation:arrowflow 2s ease-in-out infinite}
+@keyframes arrowflow{0%,100%{transform:translateX(0);opacity:.4}50%{transform:translateX(3px);opacity:1}}
+
+/* TABLE */
+.table-card{background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px}
+.table-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.table-search{background:var(--bg3);border:1px solid var(--border2);border-radius:7px;padding:6px 12px;color:var(--text);font-size:11px;font-family:inherit;outline:none;width:200px;transition:.2s}
+.table-search:focus{border-color:var(--cyan);box-shadow:0 0 0 3px var(--cyan-glow)}
+.table-scroll{max-height:520px;overflow-y:auto}
+.table-scroll::-webkit-scrollbar{width:6px}
+.table-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+table{width:100%;border-collapse:collapse}
+th{padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:var(--text3);letter-spacing:1.2px;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--bg3);font-family:'Orbitron',sans-serif;position:sticky;top:0;z-index:1}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2);font-size:12px;transition:.15s}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(6,212,232,.04);color:var(--text)}
+.rank-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);font-weight:600}
+.name-cell{font-weight:500;color:var(--text)}
+.num-cell{font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;font-weight:600}
+.tag{display:inline-block;padding:2px 9px;border-radius:5px;font-size:10px;font-weight:600;letter-spacing:.3px}
+.tag-green{background:rgba(16,220,139,.12);color:var(--green);border:1px solid rgba(16,220,139,.25)}
+.tag-blue{background:rgba(59,130,246,.12);color:var(--accent2);border:1px solid rgba(59,130,246,.25)}
+.tag-amber{background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.25)}
+.tag-red{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+
+/* LEADERBOARD */
+.lb-item{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--border);transition:.2s;animation:lbIn .6s ease backwards}
+.lb-item:nth-child(1){animation-delay:.05s}
+.lb-item:nth-child(2){animation-delay:.1s}
+.lb-item:nth-child(3){animation-delay:.15s}
+.lb-item:nth-child(4){animation-delay:.2s}
+.lb-item:nth-child(5){animation-delay:.25s}
+@keyframes lbIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+.lb-item:last-child{border-bottom:none}
+.lb-item:hover{background:rgba(6,212,232,.04);padding-left:18px}
+.lb-rank{font-family:'Orbitron',monospace;font-size:14px;font-weight:700;color:var(--text3);width:28px;text-align:center;flex-shrink:0}
+.lb-rank.top1{color:#FFD700;text-shadow:0 0 12px rgba(255,215,0,.6)}
+.lb-rank.top2{color:#C0C0C0;text-shadow:0 0 10px rgba(192,192,192,.5)}
+.lb-rank.top3{color:#CD7F32;text-shadow:0 0 10px rgba(205,127,50,.5)}
+.lb-name{flex:1;font-size:12px;color:var(--text);font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lb-bar-wrap{flex:1.5;background:var(--bg3);border-radius:4px;height:8px;overflow:hidden;position:relative;border:1px solid var(--border)}
+.lb-bar{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--cyan));transition:width 1s cubic-bezier(.34,1.5,.5,1);position:relative;box-shadow:0 0 10px var(--accent-glow)}
+.lb-bar::after{content:'';position:absolute;top:0;right:0;width:20px;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.4));animation:lbshimmer 2s linear infinite}
+@keyframes lbshimmer{0%{transform:translateX(-100%)}100%{transform:translateX(0)}}
+.lb-val{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--cyan);width:75px;text-align:right;flex-shrink:0;font-weight:700;text-shadow:0 0 8px var(--cyan-glow)}
+
+/* INDIVIDUAL */
+.person-card{background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:14px;position:relative;overflow:hidden}
+.person-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--purple),var(--cyan))}
+.person-header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+.avatar{width:54px;height:54px;border-radius:14px;background:linear-gradient(135deg,var(--accent),var(--purple));display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;font-family:'Orbitron',sans-serif;flex-shrink:0;box-shadow:0 0 24px var(--accent-glow);position:relative}
+.avatar::after{content:'';position:absolute;inset:-3px;border-radius:17px;border:1px dashed var(--cyan);opacity:.5;animation:rotateDash 8s linear infinite}
+.person-name{font-family:'Orbitron',sans-serif;font-size:16px;font-weight:700;color:var(--text);letter-spacing:.5px}
+.person-role{font-size:11px;color:var(--cyan);margin-top:3px;letter-spacing:.5px}
+.person-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
+.pstat{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;position:relative;overflow:hidden;transition:.3s}
+.pstat:hover{border-color:var(--cyan);box-shadow:0 0 16px var(--cyan-glow)}
+.pstat-val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;color:var(--text);text-shadow:0 0 12px var(--accent-glow)}
+.pstat-label{font-size:10px;color:var(--text3);margin-top:5px;letter-spacing:.8px;text-transform:uppercase;font-weight:600}
+
+/* SECTION TITLE */
+.section-title{font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--text2);letter-spacing:2px;text-transform:uppercase;margin:18px 0 12px;display:flex;align-items:center;gap:10px}
+.section-title::before{content:'';width:24px;height:2px;background:linear-gradient(90deg,var(--cyan),transparent);border-radius:2px;box-shadow:0 0 8px var(--cyan-glow)}
+.section-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--border),transparent)}
+
+.empty-state{text-align:center;padding:50px;color:var(--text3);font-size:12px;background:var(--glass);border:1px dashed var(--border2);border-radius:14px}
+.empty-state-icon{font-size:48px;margin-bottom:16px;opacity:.3}
+
+/* MOBILE */
+@media(max-width:900px){.sidebar{width:60px}.main{margin-left:60px}.logo-text,.logo-sub,.nav-item span:not(.nav-icon),.nav-section,.clock-date,.theme-toggle span{display:none}.nav-item.active::after{display:none}.theme-toggle{padding:8px 0}}
+@media(max-width:600px){.topbar{padding:12px 16px}.content{padding:14px 16px}.status-flow{padding:14px 8px;flex-wrap:wrap}.sf-arrow{display:none}.sf-node{flex:1 1 40%}}
+
+/* SHIMMER FOR LOADING */
+@keyframes shimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
+.shimmer{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:400px 100%;animation:shimmer 1.4s linear infinite;border-radius:6px;color:transparent!important}
+
+/* NOTIFICATION */
+.notif{position:fixed;bottom:20px;right:20px;background:var(--glass-strong);backdrop-filter:blur(20px);border:1px solid var(--cyan);border-radius:10px;padding:12px 16px;font-size:12px;color:var(--text);box-shadow:0 8px 32px var(--cyan-glow);z-index:1000;animation:notifIn .4s ease;display:flex;align-items:center;gap:10px}
+@keyframes notifIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.notif.exit{animation:notifOut .3s ease forwards}
+@keyframes notifOut{to{transform:translateY(20px);opacity:0}}
+</style>
+</head>
+<body>
+
+<div class="scan-line"></div>
+
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">◈</div>
+    <div>
+      <div class="logo-text">NEO OPS</div>
+      <div class="logo-sub">COMMAND CENTER</div>
+    </div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">DASHBOARDS</div>
+    <div class="nav-item active" data-page="overview" onclick="showPage('overview',this)">
+      <span class="nav-icon">⬢</span><span>Overview</span>
+    </div>
+    <div class="nav-item" data-page="hourly" onclick="showPage('hourly',this)">
+      <span class="nav-icon">◷</span><span>Hourly Flow</span>
+    </div>
+    <div class="nav-section">OPERATIONS</div>
+    <div class="nav-item" data-page="picking" onclick="showPage('picking',this)">
+      <span class="nav-icon">⬡</span><span>Picking</span>
+    </div>
+    <div class="nav-item" data-page="packing" onclick="showPage('packing',this)">
+      <span class="nav-icon">◆</span><span>Packing</span>
+    </div>
+    <div class="nav-section">ANALYTICS</div>
+    <div class="nav-item" data-page="individual" onclick="showPage('individual',this)">
+      <span class="nav-icon">◉</span><span>Individual</span>
+    </div>
+    <div class="nav-item" data-page="trends" onclick="showPage('trends',this)">
+      <span class="nav-icon">⟁</span><span>Trends</span>
+    </div>
+  </nav>
+  <div class="sidebar-foot">
+    <div class="clock-row">
+      <div class="live-dot"></div>
+      <div>
+        <div class="clock-val" id="clock">--:--:--</div>
+        <div class="clock-date" id="datedisp">--</div>
+      </div>
+    </div>
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">
+      <span id="themeIcon">☀</span>
+      <span id="themeLabel">Light Mode</span>
+    </button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title">
+      <h1>OUTBOUND <span>OPERATIONS</span></h1>
+      <p id="page-sub">Real-time warehouse intelligence system</p>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">From</span>
+      <input type="date" id="f-date-from" onchange="applyFilters()"/>
+      <span class="filter-label">To</span>
+      <input type="date" id="f-date-to" onchange="applyFilters()"/>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Store</span>
+      <select id="f-store" onchange="applyFilters()">
+        <option value="">ALL STORES</option>
+        <option>Neo Beauty</option><option>Dnee</option><option>Neo Household</option><option>Makro Pro</option>
+      </select>
+    </div>
+    <div class="refresh-status">
+      <div class="live-dot"></div>
+      <span id="refresh-status-text">LIVE</span>
+    </div>
+    <button class="btn btn-primary" onclick="applyFilters()">⟳ SYNC</button>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="page active" id="page-overview">
+      <div class="kpi-grid" id="kpi-overview"></div>
+      <div class="status-flow" id="status-flow"></div>
+
+      <div class="chart-grid chart-grid-2">
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">Daily Pick Volume</span>
+            <span class="chart-badge" id="pick-total-badge">—</span>
+          </div>
+          <div class="chart-wrap" style="height:240px"><canvas id="chart-daily-pick" role="img" aria-label="Daily picking trend"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">Daily Pack Volume</span>
+            <span class="chart-badge" id="pack-total-badge">—</span>
+          </div>
+          <div class="chart-wrap" style="height:240px"><canvas id="chart-daily-pack" role="img" aria-label="Daily packing trend"></canvas></div>
+        </div>
+      </div>
+
+      <div class="chart-grid chart-grid-2">
+        <div class="chart-card">
+          <div class="chart-header"><span class="chart-title">Order Type Mix</span></div>
+          <div class="chart-wrap" style="height:240px"><canvas id="chart-order-type" role="img" aria-label="Order type donut"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><span class="chart-title">Store Distribution</span></div>
+          <div class="chart-wrap" style="height:240px"><canvas id="chart-store" role="img" aria-label="Store donut"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HOURLY -->
+    <div class="page" id="page-hourly">
+      <div class="filter-group" style="margin-bottom:16px">
+        <span class="filter-label">Date</span>
+        <select id="f-hrs-date" onchange="renderHourly()"></select>
+        <div class="view-toggle">
+          <button class="view-btn active" onclick="setHrsView('orders',this)">Orders</button>
+          <button class="view-btn" onclick="setHrsView('pipeline',this)">Pipeline</button>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:14px">
+        <div class="chart-header">
+          <span class="chart-title" id="hrs-chart-title">Hourly Throughput</span>
+          <span class="chart-badge" id="hrs-total-badge">—</span>
+        </div>
+        <div class="chart-wrap" style="height:340px"><canvas id="chart-hourly" role="img"></canvas></div>
+      </div>
+
+      <div class="section-title">Hourly Breakdown</div>
+      <div class="table-card">
+        <div class="table-scroll">
+        <table id="tbl-hourly">
+          <thead><tr>
+            <th>TIME</th><th class="num-cell">Orders</th>
+            <th class="num-cell">Created</th><th class="num-cell">Approved</th>
+            <th class="num-cell">Printed</th><th class="num-cell">Pick</th>
+            <th class="num-cell">Pack</th>
+          </tr></thead>
+          <tbody id="tbl-hourly-body"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PICKING -->
+    <div class="page" id="page-picking">
+      <div class="section-title">PICKING LEADERBOARD</div>
+      <div class="chart-grid chart-grid-2" style="margin-bottom:14px">
+        <div class="chart-card">
+          <div class="chart-header"><span class="chart-title">Top Pickers</span></div>
+          <div id="lb-pickers"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><span class="chart-title">Pick Trend</span></div>
+          <div class="chart-wrap" style="height:300px"><canvas id="chart-pick-trend"></canvas></div>
+        </div>
+      </div>
+      <div class="section-title">All Pickers</div>
+      <div class="table-card">
+        <div class="table-header">
+          <span class="chart-title">Employee Performance</span>
+          <input class="table-search" type="text" id="search-pickers" placeholder="🔍 Search name..." oninput="filterPickTable()"/>
+        </div>
+        <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>#</th><th>NAME</th>
+            <th class="num-cell">Total</th>
+            <th class="num-cell">Days</th>
+            <th class="num-cell">Avg/Day</th>
+            <th class="num-cell">Min/Order</th>
+          </tr></thead>
+          <tbody id="tbl-pickers"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PACKING -->
+    <div class="page" id="page-packing">
+      <div class="section-title">PACKING LEADERBOARD</div>
+      <div class="chart-grid chart-grid-2" style="margin-bottom:14px">
+        <div class="chart-card">
+          <div class="chart-header"><span class="chart-title">Top Packers</span></div>
+          <div id="lb-packers"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><span class="chart-title">Pack Trend</span></div>
+          <div class="chart-wrap" style="height:300px"><canvas id="chart-pack-trend"></canvas></div>
+        </div>
+      </div>
+      <div class="section-title">All Packers</div>
+      <div class="table-card">
+        <div class="table-header">
+          <span class="chart-title">Employee Performance</span>
+          <input class="table-search" type="text" id="search-packers" placeholder="🔍 Search name..." oninput="filterPackTable()"/>
+        </div>
+        <div class="table-scroll">
+        <table>
+          <thead><tr>
+            <th>#</th><th>NAME</th>
+            <th class="num-cell">Total</th>
+            <th class="num-cell">Days</th>
+            <th class="num-cell">Avg/Day</th>
+          </tr></thead>
+          <tbody id="tbl-packers"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- INDIVIDUAL -->
+    <div class="page" id="page-individual">
+      <div class="filter-group" style="margin-bottom:18px">
+        <div class="view-toggle">
+          <button class="view-btn active" onclick="setIndivRole('picker',this)">Picker</button>
+          <button class="view-btn" onclick="setIndivRole('packer',this)">Packer</button>
+        </div>
+        <span class="filter-label">Employee</span>
+        <select id="f-individual" onchange="renderIndividual()" style="min-width:220px"></select>
+      </div>
+      <div id="individual-content">
+        <div class="empty-state">
+          <div class="empty-state-icon">◉</div>
+          เลือกพนักงานเพื่อดูข้อมูลรายบุคคล
+        </div>
+      </div>
+    </div>
+
+    <!-- TRENDS -->
+    <div class="page" id="page-trends">
+      <div class="kpi-grid" id="kpi-trends" style="margin-bottom:22px"></div>
+      <div class="chart-grid" style="grid-template-columns:1fr;margin-bottom:14px">
+        <div class="chart-card">
+          <div class="chart-header">
+            <span class="chart-title">Pick vs Pack Trend</span>
+            <div class="view-toggle">
+              <button class="view-btn active" onclick="setTrendMode('volume',this)">Volume</button>
+              <button class="view-btn" onclick="setTrendMode('opp',this)">Per Person</button>
+            </div>
+          </div>
+          <div class="chart-wrap" style="height:340px"><canvas id="chart-trend-main"></canvas></div>
+        </div>
+      </div>
+      <div class="chart-grid chart-grid-2">
+        <div class="chart-card">
+          <div class="chart-header"><span class="chart-title">Order Type Stacked</span></div>
+          <div class="chart-wrap" style="height:260px"><canvas id="chart-type-trend"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><span class="chart-title">Active Workforce</span></div>
+          <div class="chart-wrap" style="height:260px"><canvas id="chart-workforce"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+let D = null;
+let currentView = 'overview';
+let hrsView = 'orders';
+let indivRole = 'picker';
+let trendMode = 'volume';
+let charts = {};
+
+// ===== THEME =====
+function getTheme(){return localStorage.getItem('theme')||'dark';}
+function applyTheme(t){
+  document.documentElement.setAttribute('data-theme',t);
+  document.getElementById('themeIcon').textContent=t==='dark'?'☀':'☾';
+  document.getElementById('themeLabel').textContent=t==='dark'?'Light Mode':'Dark Mode';
+  if(D)renderPage(currentView);
+}
+function toggleTheme(){
+  const cur=getTheme();
+  const next=cur==='dark'?'light':'dark';
+  localStorage.setItem('theme',next);
+  applyTheme(next);
+}
+applyTheme(getTheme());
+
+// ===== CLOCK =====
+function startClock(){
+  function tick(){
+    const n=new Date();
+    document.getElementById('clock').textContent=n.toLocaleTimeString('en-GB');
+    document.getElementById('datedisp').textContent=n.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'});
+  }
+  tick(); setInterval(tick,1000);
+}
+
+// ===== INIT =====
+const __DATA__ = __DATA_PLACEHOLDER__;
+D = __DATA__;
+initFilters();
+initHrsDateFilter();
+initIndivFilter();
+renderAll();
+startClock();
+startAutoRefresh();
+
+function startAutoRefresh(){
+  // Static version - no auto-refresh
+}
+
+function showNotif(msg){
+  const n=document.createElement('div');
+  n.className='notif';
+  n.innerHTML=`<div class="live-dot"></div><span>${msg}</span>`;
+  document.body.appendChild(n);
+  setTimeout(()=>{n.classList.add('exit');setTimeout(()=>n.remove(),300);},2500);
+}
+
+// ===== FILTERS =====
+function initFilters(){
+  const dates=D.all_dates.filter(d=>d);
+  document.getElementById('f-date-from').value=dates[Math.max(0,dates.length-30)];
+  document.getElementById('f-date-to').value=dates[dates.length-1];
+}
+function initHrsDateFilter(){
+  const sel=document.getElementById('f-hrs-date');
+  D.hrs_dates.slice().reverse().forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});
+}
+function initIndivFilter(){populateIndivSelect('picker');}
+function populateIndivSelect(role){
+  const sel=document.getElementById('f-individual');
+  sel.innerHTML='<option value="">— Select —</option>';
+  const names=role==='picker'?D.all_pickers:D.all_packers;
+  names.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});
+  sel.value='';
+}
+function getDateRange(){return {from:document.getElementById('f-date-from').value, to:document.getElementById('f-date-to').value};}
+function inRange(d){const r=getDateRange();return(!r.from||d>=r.from)&&(!r.to||d<=r.to);}
+function applyFilters(){renderAll();showNotif('Filter applied');}
+
+// ===== NAV =====
+const pageTitles={
+  overview:'Real-time warehouse intelligence system',
+  hourly:'Hour-by-hour order pipeline activity',
+  picking:'Picking team performance & leaderboard',
+  packing:'Packing team performance & leaderboard',
+  individual:'Individual employee deep-dive analysis',
+  trends:'Long-term operational trends & patterns'
+};
+function showPage(pg,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+pg).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+  currentView=pg;
+  document.getElementById('page-sub').textContent=pageTitles[pg]||'';
+  renderPage(pg);
+}
+function renderAll(){renderPage(currentView);}
+function renderPage(pg){
+  if(pg==='overview') renderOverview();
+  else if(pg==='hourly') renderHourly();
+  else if(pg==='picking') renderPicking();
+  else if(pg==='packing') renderPacking();
+  else if(pg==='individual') renderIndividual();
+  else if(pg==='trends') renderTrends();
+}
+
+// ===== CHART HELPERS =====
+function getCssVar(name){return getComputedStyle(document.documentElement).getPropertyValue(name).trim();}
+function getChartColors(){
+  return {
+    text: getCssVar('--text2'),
+    grid: getCssVar('--border'),
+    accent: getCssVar('--accent'),
+    cyan: getCssVar('--cyan'),
+    purple: getCssVar('--purple'),
+    green: getCssVar('--green'),
+    amber: getCssVar('--amber'),
+    red: getCssVar('--red'),
+    pink: getCssVar('--pink'),
+    bg2: getCssVar('--bg2'),
+    glass: getCssVar('--glass-strong'),
+  };
+}
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function makeChart(id,config){
+  destroyChart(id);
+  const ctx=document.getElementById(id);
+  if(!ctx)return;
+  // base defaults
+  const colors=getChartColors();
+  const baseOpts={
+    responsive:true, maintainAspectRatio:false,
+    animation:{duration:900,easing:'easeOutQuart'},
+    plugins:{
+      legend:{display:false},
+      tooltip:{backgroundColor:colors.glass,titleColor:colors.text,bodyColor:colors.text,borderColor:colors.cyan,borderWidth:1,padding:10,cornerRadius:8,titleFont:{family:'Orbitron',size:11,weight:600},bodyFont:{family:'JetBrains Mono',size:11}}
+    },
+    scales:{x:{ticks:{color:colors.text,font:{family:'JetBrains Mono',size:10}},grid:{color:colors.grid}},y:{ticks:{color:colors.text,font:{family:'JetBrains Mono',size:10}},grid:{color:colors.grid}}}
+  };
+  // merge
+  config.options = mergeDeep(baseOpts, config.options || {});
+  charts[id]=new Chart(ctx,config);
+  return charts[id];
+}
+function mergeDeep(a,b){
+  const r={...a};
+  for(const k in b){
+    if(b[k]&&typeof b[k]==='object'&&!Array.isArray(b[k])){
+      r[k]=mergeDeep(a[k]||{},b[k]);
+    } else r[k]=b[k];
+  }
+  return r;
+}
+function fmtNum(n){return Math.round(n).toLocaleString();}
+function fmtDate(d){return d?d.slice(5):'';}
+
+// ===== COUNTER ANIMATION =====
+function animateNumber(el,target,duration){
+  duration=duration||900;
+  const start=performance.now();
+  const startVal=0;
+  function tick(now){
+    const p=Math.min(1,(now-start)/duration);
+    const eased=1-Math.pow(1-p,3);
+    el.textContent=Math.round(startVal+(target-startVal)*eased).toLocaleString();
+    if(p<1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+// ===== OVERVIEW =====
+function renderOverview(){
+  if(!D)return;
+  const colors=getChartColors();
+  const pickEntries=Object.entries(D.daily_pick).filter(([d])=>inRange(d));
+  const packEntries=Object.entries(D.daily_pack).filter(([d])=>inRange(d));
+  const totalPick=pickEntries.reduce((s,[,v])=>s+v.total_orders,0);
+  const totalPack=packEntries.reduce((s,[,v])=>s+v.total_orders,0);
+  const avgPackEmp=packEntries.length?packEntries.reduce((s,[,v])=>s+v.employees,0)/packEntries.length:0;
+  const days=pickEntries.length;
+
+  const totalBacklog=Object.values(D.backlog_statuses).reduce((a,b)=>a+b,0);
+  const shipped=D.backlog_statuses['Start Shipping Handover']||0;
+  const packDone=D.backlog_statuses['Packing Completed']||0;
+  const allocated=D.backlog_statuses['Inventory Allocation Succeeded']||0;
+  const failed=(D.backlog_statuses['Inventory Allocation Failed']||0)+(D.backlog_statuses['Obtaining Label Failed']||0);
+
+  const kpis=[
+    {label:'Total Pick Orders',raw:totalPick,sub:`${days} days analyzed`,color:'var(--accent)',icon:'⬡'},
+    {label:'Total Pack Orders',raw:totalPack,sub:`${days} days analyzed`,color:'var(--green)',icon:'◆'},
+    {label:'Avg Daily Pick',raw:Math.round(totalPick/(days||1)),sub:'orders / day',color:'var(--cyan)',icon:'⟁'},
+    {label:'Active Packers',raw:Math.round(avgPackEmp),sub:'avg headcount',color:'var(--purple)',icon:'◉'},
+    {label:'Ready to Ship',raw:shipped,sub:'pending handover',color:'var(--amber)',icon:'⇨'},
+    {label:'Packing Done',raw:packDone,sub:'completed today',color:'var(--cyan)',icon:'✓'},
+    {label:'In Queue',raw:allocated,sub:'awaiting ops',color:'var(--text3)',icon:'⏳'},
+    {label:'Failed/Error',raw:failed,sub:'need attention',color:'var(--red)',icon:'⚠'},
+  ];
+  const kg=document.getElementById('kpi-overview');
+  kg.innerHTML='';
+  kpis.forEach((k,i)=>{
+    const id='kpi-num-'+i;
+    kg.innerHTML+=`<div class="kpi-card" style="--kpi-color:${k.color}">
+      <div class="kpi-icon" style="color:${k.color}">${k.icon}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-val" id="${id}" data-glow style="color:${k.color}">0</div>
+      <div class="kpi-sub">${k.sub}</div>
+      <div class="kpi-shimmer" style="background:linear-gradient(180deg,transparent,${k.color})"></div>
+    </div>`;
+  });
+  // Animate counters
+  setTimeout(()=>{
+    kpis.forEach((k,i)=>{
+      const el=document.getElementById('kpi-num-'+i);
+      if(el) animateNumber(el,k.raw,900+i*60);
+    });
+  },50);
+
+  // Status flow
+  const sfEl=document.getElementById('status-flow');
+  const sfItems=[
+    {name:'Allocated',val:allocated,color:'var(--accent)',glow:'var(--accent-glow)',icon:'⊡'},
+    {name:'Label Failed',val:D.backlog_statuses['Obtaining Label Failed']||0,color:'var(--amber)',glow:'var(--amber-glow)',icon:'⊠'},
+    {name:'Pack Done',val:packDone,color:'var(--cyan)',glow:'var(--cyan-glow)',icon:'◆'},
+    {name:'Ready Ship',val:shipped,color:'var(--purple)',glow:'var(--purple-glow)',icon:'⇨'},
+    {name:'Error',val:D.backlog_statuses['Inventory Allocation Failed']||0,color:'var(--red)',glow:'var(--red-glow)',icon:'⚠'},
+  ];
+  let html='';
+  sfItems.forEach((sf,idx)=>{
+    const pct=totalBacklog?Math.round(sf.val/totalBacklog*100):0;
+    html+=`<div class="sf-node" style="--sf-color:${sf.color};--sf-color-glow:${sf.glow}">
+      <div class="sf-circle" style="color:${sf.color}">${sf.icon}</div>
+      <div class="sf-name">${sf.name}</div>
+      <div class="sf-val">${fmtNum(sf.val)}</div>
+      <div class="sf-pct">${pct}% of ${fmtNum(totalBacklog)}</div>
+    </div>`;
+    if(idx<sfItems.length-1) html+=`<div class="sf-arrow">▶</div>`;
+  });
+  sfEl.innerHTML=html;
+
+  document.getElementById('pick-total-badge').textContent=fmtNum(totalPick)+' ORDERS';
+  document.getElementById('pack-total-badge').textContent=fmtNum(totalPack)+' ORDERS';
+
+  const pickDates=pickEntries.map(([d])=>fmtDate(d));
+  const pickVals=pickEntries.map(([,v])=>v.total_orders);
+  const ctx1=document.getElementById('chart-daily-pick').getContext('2d');
+  const grad1=ctx1.createLinearGradient(0,0,0,240);
+  grad1.addColorStop(0,colors.accent+'cc');
+  grad1.addColorStop(1,colors.accent+'10');
+  makeChart('chart-daily-pick',{type:'bar',data:{labels:pickDates,datasets:[{data:pickVals,backgroundColor:grad1,borderColor:colors.cyan,borderWidth:1,borderRadius:4,hoverBackgroundColor:colors.cyan}]},
+    options:{scales:{x:{ticks:{maxTicksLimit:12}}}}});
+
+  const packDates=packEntries.map(([d])=>fmtDate(d));
+  const packVals=packEntries.map(([,v])=>v.total_orders);
+  const ctx2=document.getElementById('chart-daily-pack').getContext('2d');
+  const grad2=ctx2.createLinearGradient(0,0,0,240);
+  grad2.addColorStop(0,colors.green+'cc');
+  grad2.addColorStop(1,colors.green+'10');
+  makeChart('chart-daily-pack',{type:'bar',data:{labels:packDates,datasets:[{data:packVals,backgroundColor:grad2,borderColor:colors.green,borderWidth:1,borderRadius:4,hoverBackgroundColor:colors.green}]},
+    options:{scales:{x:{ticks:{maxTicksLimit:12}}}}});
+
+  const typeTotals={Single:0,Multiple:0,Bulk:0};
+  Object.entries(D.pick_types).filter(([d])=>inRange(d)).forEach(([,v])=>{
+    Object.entries(v).forEach(([t,n])=>{if(typeTotals[t]!==undefined)typeTotals[t]+=n;});
+  });
+  const totalType=Object.values(typeTotals).reduce((a,b)=>a+b,0);
+  makeChart('chart-order-type',{type:'doughnut',data:{labels:Object.keys(typeTotals),
+    datasets:[{data:Object.values(typeTotals),backgroundColor:[colors.accent,colors.purple,colors.amber],borderWidth:0,hoverOffset:8,borderRadius:4}]},
+    options:{cutout:'68%',plugins:{legend:{display:true,position:'bottom',labels:{color:colors.text,font:{family:'JetBrains Mono',size:11},padding:14,boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'rectRounded'}},
+    tooltip:{callbacks:{label:c=>` ${c.label}: ${fmtNum(c.parsed)} (${(c.parsed/totalType*100).toFixed(1)}%)`}}},scales:{}}});
+
+  const storeColors=[colors.cyan,colors.green,colors.purple,colors.amber];
+  makeChart('chart-store',{type:'doughnut',data:{labels:Object.keys(D.backlog_stores),
+    datasets:[{data:Object.values(D.backlog_stores),backgroundColor:storeColors,borderWidth:0,hoverOffset:8,borderRadius:4}]},
+    options:{cutout:'68%',plugins:{legend:{display:true,position:'bottom',labels:{color:colors.text,font:{family:'JetBrains Mono',size:11},padding:14,boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'rectRounded'}}},scales:{}}});
+}
+
+// ===== HOURLY =====
+function setHrsView(v,el){hrsView=v;document.querySelectorAll('#page-hourly .view-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderHourly();}
+function renderHourly(){
+  if(!D)return;
+  const colors=getChartColors();
+  const dateVal=document.getElementById('f-hrs-date').value;
+  const rows=D.hrs_by_date[dateVal]||[];
+  const labels=rows.map(r=>r.slot.slice(0,5));
+  document.getElementById('hrs-total-badge').textContent=fmtNum(rows.reduce((s,r)=>s+r.total_orders,0))+' ORDERS';
+
+  destroyChart('chart-hourly');
+  if(hrsView==='orders'){
+    document.getElementById('hrs-chart-title').textContent='Orders per Hour';
+    const ctx=document.getElementById('chart-hourly').getContext('2d');
+    const grad=ctx.createLinearGradient(0,0,0,300);
+    grad.addColorStop(0,colors.cyan+'dd');grad.addColorStop(1,colors.accent+'33');
+    makeChart('chart-hourly',{type:'bar',data:{labels,datasets:[{label:'Orders',data:rows.map(r=>r.total_orders),backgroundColor:grad,borderColor:colors.cyan,borderWidth:1,borderRadius:4,hoverBackgroundColor:colors.cyan}]},
+      options:{}});
+  } else {
+    document.getElementById('hrs-chart-title').textContent='Pipeline Flow';
+    makeChart('chart-hourly',{type:'line',data:{labels,datasets:[
+      {label:'Created',data:rows.map(r=>r.created),borderColor:colors.accent,backgroundColor:colors.accent+'22',tension:.35,pointRadius:3,pointHoverRadius:6,fill:false,borderWidth:2},
+      {label:'Approved',data:rows.map(r=>r.approved),borderColor:colors.green,backgroundColor:colors.green+'22',tension:.35,pointRadius:3,pointHoverRadius:6,fill:false,borderWidth:2},
+      {label:'Printed',data:rows.map(r=>r.printed),borderColor:colors.amber,backgroundColor:colors.amber+'22',tension:.35,pointRadius:3,pointHoverRadius:6,fill:false,borderWidth:2},
+      {label:'Pick Done',data:rows.map(r=>r.pick_done),borderColor:colors.purple,backgroundColor:colors.purple+'22',tension:.35,pointRadius:3,pointHoverRadius:6,fill:false,borderWidth:2},
+      {label:'Pack Done',data:rows.map(r=>r.pack_done),borderColor:colors.cyan,backgroundColor:colors.cyan+'22',tension:.35,pointRadius:3,pointHoverRadius:6,fill:false,borderWidth:2},
+    ]},options:{plugins:{legend:{display:true,position:'bottom',labels:{color:colors.text,font:{family:'JetBrains Mono',size:10},padding:12,boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'circle'}}}}});
+  }
+
+  const tbody=document.getElementById('tbl-hourly-body');
+  tbody.innerHTML='';
+  const maxPack=Math.max(...rows.map(r=>r.pack_done));
+  rows.forEach(r=>{
+    const hi=r.pack_done===maxPack&&maxPack>0?' style="color:var(--amber);font-weight:700;text-shadow:0 0 8px var(--amber-glow)"':'';
+    tbody.innerHTML+=`<tr>
+      <td style="font-family:'JetBrains Mono',monospace;color:var(--cyan);font-weight:600">${r.slot}</td>
+      <td class="num-cell">${fmtNum(r.total_orders)}</td>
+      <td class="num-cell">${fmtNum(r.created)}</td>
+      <td class="num-cell">${fmtNum(r.approved)}</td>
+      <td class="num-cell">${r.printed?fmtNum(r.printed):'—'}</td>
+      <td class="num-cell">${r.pick_done?fmtNum(r.pick_done):'—'}</td>
+      <td class="num-cell"${hi}>${r.pack_done?fmtNum(r.pack_done):'—'}</td>
+    </tr>`;
+  });
+}
+
+// ===== PICKING =====
+function renderPicking(){
+  if(!D)return;
+  const colors=getChartColors();
+  const agg={};
+  D.picker.filter(r=>inRange(r.date)).forEach(r=>{
+    if(!agg[r.name])agg[r.name]={total:0,days:0,avgMins:[]};
+    agg[r.name].total+=r.orders;agg[r.name].days+=1;
+    if(r.avg_min>0)agg[r.name].avgMins.push(r.avg_min);
+  });
+  const sorted=Object.entries(agg).sort(([,a],[,b])=>b.total-a.total);
+  const maxV=sorted[0]?sorted[0][1].total:1;
+
+  const lb=document.getElementById('lb-pickers');
+  lb.innerHTML='';
+  sorted.slice(0,12).forEach(([name,v],i)=>{
+    const rk=i===0?'top1':i===1?'top2':i===2?'top3':'';
+    lb.innerHTML+=`<div class="lb-item">
+      <div class="lb-rank ${rk}">${(i+1).toString().padStart(2,'0')}</div>
+      <div class="lb-name">${name}</div>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:0%"></div></div>
+      <div class="lb-val">${fmtNum(v.total)}</div>
+    </div>`;
+  });
+  // Animate bars in
+  setTimeout(()=>{
+    document.querySelectorAll('#lb-pickers .lb-bar').forEach((bar,i)=>{
+      const v=sorted[i][1].total;
+      bar.style.width=(v/maxV*100)+'%';
+    });
+  },80);
+
+  const trend=Object.entries(D.daily_pick).filter(([d])=>inRange(d));
+  const ctx=document.getElementById('chart-pick-trend').getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,300);
+  grad.addColorStop(0,colors.accent+'66');grad.addColorStop(1,colors.accent+'00');
+  makeChart('chart-pick-trend',{type:'line',data:{labels:trend.map(([d])=>fmtDate(d)),
+    datasets:[{data:trend.map(([,v])=>v.total_orders),borderColor:colors.cyan,backgroundColor:grad,fill:true,tension:.4,pointRadius:2,pointHoverRadius:6,pointBackgroundColor:colors.cyan,borderWidth:2}]
+  },options:{scales:{x:{ticks:{maxTicksLimit:10}}}}});
+
+  renderPickTable(sorted);
+}
+let _pickSorted=[];
+function renderPickTable(s){_pickSorted=s;filterPickTable();}
+function filterPickTable(){
+  const q=document.getElementById('search-pickers').value.toLowerCase();
+  const rows=_pickSorted.filter(([n])=>n.toLowerCase().includes(q));
+  const tbody=document.getElementById('tbl-pickers');
+  tbody.innerHTML='';
+  rows.forEach(([name,v],i)=>{
+    const avg=v.days?v.total/v.days:0;
+    const avgM=v.avgMins.length?v.avgMins.reduce((a,b)=>a+b,0)/v.avgMins.length:0;
+    const tag=v.days>=20?'tag-green':v.days>=10?'tag-blue':v.days>=5?'tag-amber':'tag-red';
+    tbody.innerHTML+=`<tr>
+      <td class="rank-num">${(i+1).toString().padStart(3,'0')}</td>
+      <td class="name-cell">${name}</td>
+      <td class="num-cell">${fmtNum(v.total)}</td>
+      <td class="num-cell"><span class="tag ${tag}">${v.days}D</span></td>
+      <td class="num-cell">${Math.round(avg).toLocaleString()}</td>
+      <td class="num-cell" style="color:var(--cyan)">${avgM?avgM.toFixed(1):'—'}</td>
+    </tr>`;
+  });
+}
+
+// ===== PACKING =====
+function renderPacking(){
+  if(!D)return;
+  const colors=getChartColors();
+  const agg={};
+  D.packer.filter(r=>inRange(r.date)).forEach(r=>{
+    if(!agg[r.name])agg[r.name]={total:0,days:0};
+    agg[r.name].total+=r.orders;agg[r.name].days+=1;
+  });
+  const sorted=Object.entries(agg).sort(([,a],[,b])=>b.total-a.total);
+  const maxV=sorted[0]?sorted[0][1].total:1;
+
+  const lb=document.getElementById('lb-packers');
+  lb.innerHTML='';
+  sorted.slice(0,12).forEach(([name,v],i)=>{
+    const rk=i===0?'top1':i===1?'top2':i===2?'top3':'';
+    lb.innerHTML+=`<div class="lb-item">
+      <div class="lb-rank ${rk}">${(i+1).toString().padStart(2,'0')}</div>
+      <div class="lb-name">${name}</div>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:0%;background:linear-gradient(90deg,var(--green),var(--cyan))"></div></div>
+      <div class="lb-val" style="color:var(--green);text-shadow:0 0 8px var(--green-glow)">${fmtNum(v.total)}</div>
+    </div>`;
+  });
+  setTimeout(()=>{
+    document.querySelectorAll('#lb-packers .lb-bar').forEach((bar,i)=>{
+      const v=sorted[i][1].total;
+      bar.style.width=(v/maxV*100)+'%';
+    });
+  },80);
+
+  const trend=Object.entries(D.daily_pack).filter(([d])=>inRange(d));
+  const ctx=document.getElementById('chart-pack-trend').getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,300);
+  grad.addColorStop(0,colors.green+'66');grad.addColorStop(1,colors.green+'00');
+  makeChart('chart-pack-trend',{type:'line',data:{labels:trend.map(([d])=>fmtDate(d)),
+    datasets:[{data:trend.map(([,v])=>v.total_orders),borderColor:colors.green,backgroundColor:grad,fill:true,tension:.4,pointRadius:2,pointHoverRadius:6,pointBackgroundColor:colors.green,borderWidth:2}]
+  },options:{scales:{x:{ticks:{maxTicksLimit:10}}}}});
+
+  renderPackTable(sorted);
+}
+let _packSorted=[];
+function renderPackTable(s){_packSorted=s;filterPackTable();}
+function filterPackTable(){
+  const q=document.getElementById('search-packers').value.toLowerCase();
+  const rows=_packSorted.filter(([n])=>n.toLowerCase().includes(q));
+  const tbody=document.getElementById('tbl-packers');
+  tbody.innerHTML='';
+  rows.forEach(([name,v],i)=>{
+    const avg=v.days?v.total/v.days:0;
+    const tag=v.days>=20?'tag-green':v.days>=10?'tag-blue':v.days>=5?'tag-amber':'tag-red';
+    tbody.innerHTML+=`<tr>
+      <td class="rank-num">${(i+1).toString().padStart(3,'0')}</td>
+      <td class="name-cell">${name}</td>
+      <td class="num-cell">${fmtNum(v.total)}</td>
+      <td class="num-cell"><span class="tag ${tag}">${v.days}D</span></td>
+      <td class="num-cell">${Math.round(avg).toLocaleString()}</td>
+    </tr>`;
+  });
+}
+
+// ===== INDIVIDUAL =====
+function setIndivRole(role,el){
+  indivRole=role;
+  document.querySelectorAll('#page-individual .view-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  populateIndivSelect(role);
+  document.getElementById('individual-content').innerHTML='<div class="empty-state"><div class="empty-state-icon">◉</div>เลือกพนักงานเพื่อดูข้อมูลรายบุคคล</div>';
+}
+function renderIndividual(){
+  if(!D)return;
+  const colors=getChartColors();
+  const name=document.getElementById('f-individual').value;
+  if(!name){document.getElementById('individual-content').innerHTML='<div class="empty-state"><div class="empty-state-icon">◉</div>เลือกพนักงานเพื่อดูข้อมูลรายบุคคล</div>';return;}
+
+  const isPickR=indivRole==='picker';
+  const byName=isPickR?D.picker_by_name:D.packer_by_name;
+  const records=(byName[name]||[]).sort((a,b)=>a.d.localeCompare(b.d));
+  const totalOrders=records.reduce((s,r)=>s+r.o,0);
+  const days=records.length;
+  const avgPerDay=days?totalOrders/days:0;
+  const avgMin=isPickR&&records.filter(r=>r.avg>0).length?records.filter(r=>r.avg>0).reduce((s,r)=>s+r.avg,0)/records.filter(r=>r.avg>0).length:null;
+  const maxDay=records.reduce((mx,r)=>r.o>mx.o?r:mx,{o:0,d:''});
+  const initials=name.replace(/[^\w\u0E00-\u0E7F\s]/g,'').trim().slice(0,2).toUpperCase();
+  const col=isPickR?'var(--accent)':'var(--green)';
+  const colCss=isPickR?colors.accent:colors.green;
+
+  const html=`
+    <div class="person-card">
+      <div class="person-header">
+        <div class="avatar" style="background:linear-gradient(135deg,${col},var(--purple))">${initials}</div>
+        <div>
+          <div class="person-name">${name}</div>
+          <div class="person-role">${isPickR?'⬡ PICKER':'◆ PACKER'} • ${days} WORKING DAYS</div>
+        </div>
+      </div>
+      <div class="person-stats">
+        <div class="pstat"><div class="pstat-val" style="color:${col}" id="ps1">0</div><div class="pstat-label">Total Orders</div></div>
+        <div class="pstat"><div class="pstat-val" id="ps2">0</div><div class="pstat-label">Avg / Day</div></div>
+        <div class="pstat"><div class="pstat-val" id="ps3">0</div><div class="pstat-label">Working Days</div></div>
+        ${avgMin?`<div class="pstat"><div class="pstat-val" id="ps4" style="color:var(--cyan)">0</div><div class="pstat-label">Min / Order</div></div>`:''}
+        <div class="pstat"><div class="pstat-val" id="ps5" style="color:var(--amber)">0</div><div class="pstat-label">Best Day</div></div>
+      </div>
+    </div>
+    <div class="chart-card" style="margin-bottom:14px">
+      <div class="chart-header"><span class="chart-title">Daily Performance — ${name}</span></div>
+      <div class="chart-wrap" style="height:280px"><canvas id="chart-indiv-daily"></canvas></div>
+    </div>
+    <div class="table-card">
+      <div class="table-header"><span class="chart-title">Daily Log</span></div>
+      <div class="table-scroll">
+      <table>
+        <thead><tr><th>DATE</th><th class="num-cell">Orders</th>${isPickR?'<th class="num-cell">Avg Min</th>':''}<th class="num-cell">vs Avg</th></tr></thead>
+        <tbody>${records.map(r=>{
+          const diff=r.o-avgPerDay;
+          const cls=diff>=0?'kpi-up':'kpi-dn';
+          const sign=diff>=0?'+':'';
+          return `<tr><td style="font-family:'JetBrains Mono',monospace;color:var(--cyan)">${r.d}</td>
+          <td class="num-cell">${fmtNum(r.o)}</td>
+          ${isPickR?`<td class="num-cell">${r.avg||'—'}</td>`:''}
+          <td class="num-cell ${cls}">${sign}${Math.round(diff).toLocaleString()}</td></tr>`;
+        }).join('')}</tbody>
+      </table>
+      </div>
+    </div>`;
+  document.getElementById('individual-content').innerHTML=html;
+
+  setTimeout(()=>{
+    animateNumber(document.getElementById('ps1'),totalOrders);
+    animateNumber(document.getElementById('ps2'),Math.round(avgPerDay));
+    animateNumber(document.getElementById('ps3'),days);
+    if(avgMin){
+      const el=document.getElementById('ps4');
+      const tgt=parseFloat(avgMin.toFixed(1));
+      const start=performance.now();
+      function tick(now){
+        const p=Math.min(1,(now-start)/900);
+        const e=1-Math.pow(1-p,3);
+        el.textContent=(tgt*e).toFixed(1);
+        if(p<1)requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+    animateNumber(document.getElementById('ps5'),maxDay.o);
+
+    const ctx=document.getElementById('chart-indiv-daily').getContext('2d');
+    const grad=ctx.createLinearGradient(0,0,0,280);
+    grad.addColorStop(0,colCss+'cc');grad.addColorStop(1,colCss+'10');
+    makeChart('chart-indiv-daily',{type:'bar',data:{labels:records.map(r=>fmtDate(r.d)),
+      datasets:[
+        {data:records.map(r=>r.o),backgroundColor:grad,borderColor:colCss,borderWidth:1,borderRadius:4,label:'Orders'},
+        {type:'line',data:Array(records.length).fill(Math.round(avgPerDay)),borderColor:colors.amber,borderDash:[5,4],pointRadius:0,label:'Average',fill:false,borderWidth:1.5}
+      ]
+    },options:{plugins:{legend:{display:false}},scales:{x:{ticks:{maxTicksLimit:15}}}}});
+  },50);
+}
+
+// ===== TRENDS =====
+function setTrendMode(m,el){trendMode=m;document.querySelectorAll('#page-trends .view-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');renderTrends();}
+function renderTrends(){
+  if(!D)return;
+  const colors=getChartColors();
+  const pickEntries=Object.entries(D.daily_pick).filter(([d])=>inRange(d));
+  const packEntries=Object.entries(D.daily_pack).filter(([d])=>inRange(d));
+  const allDates=[...new Set([...pickEntries.map(([d])=>d),...packEntries.map(([d])=>d)])].sort();
+  const totalPick=pickEntries.reduce((s,[,v])=>s+v.total_orders,0);
+  const totalPack=packEntries.reduce((s,[,v])=>s+v.total_orders,0);
+  const maxPickDay=pickEntries.reduce((mx,[d,v])=>v.total_orders>mx.v?{d,v:v.total_orders}:mx,{d:'',v:0});
+  const maxPackDay=packEntries.reduce((mx,[d,v])=>v.total_orders>mx.v?{d,v:v.total_orders}:mx,{d:'',v:0});
+
+  const kpis=[
+    {label:'Total Pick',raw:totalPick,sub:`${allDates.length} days`,color:'var(--accent)',icon:'⬡'},
+    {label:'Total Pack',raw:totalPack,sub:`${allDates.length} days`,color:'var(--green)',icon:'◆'},
+    {label:'Peak Pick',raw:maxPickDay.v,sub:fmtDate(maxPickDay.d),color:'var(--amber)',icon:'⚡'},
+    {label:'Peak Pack',raw:maxPackDay.v,sub:fmtDate(maxPackDay.d),color:'var(--purple)',icon:'⚡'},
+  ];
+  const kg=document.getElementById('kpi-trends');
+  kg.innerHTML='';
+  kpis.forEach((k,i)=>{
+    kg.innerHTML+=`<div class="kpi-card" style="--kpi-color:${k.color}">
+      <div class="kpi-icon" style="color:${k.color}">${k.icon}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-val" id="tk-${i}" data-glow style="color:${k.color}">0</div>
+      <div class="kpi-sub">${k.sub}</div>
+      <div class="kpi-shimmer" style="background:linear-gradient(180deg,transparent,${k.color})"></div>
+    </div>`;
+  });
+  setTimeout(()=>{kpis.forEach((k,i)=>animateNumber(document.getElementById('tk-'+i),k.raw,900+i*60));},50);
+
+  const pickMap=Object.fromEntries(pickEntries);
+  const packMap=Object.fromEntries(packEntries);
+  const pickVals=allDates.map(d=>trendMode==='volume'?(pickMap[d]?.total_orders||0):(pickMap[d]?.opp||0));
+  const packVals=allDates.map(d=>trendMode==='volume'?(packMap[d]?.total_orders||0):(packMap[d]?.opp||0));
+  const ctx=document.getElementById('chart-trend-main').getContext('2d');
+  const g1=ctx.createLinearGradient(0,0,0,340);g1.addColorStop(0,colors.accent+'55');g1.addColorStop(1,colors.accent+'00');
+  const g2=ctx.createLinearGradient(0,0,0,340);g2.addColorStop(0,colors.green+'55');g2.addColorStop(1,colors.green+'00');
+  makeChart('chart-trend-main',{type:'line',data:{labels:allDates.map(fmtDate),
+    datasets:[
+      {label:'Picking',data:pickVals,borderColor:colors.cyan,backgroundColor:g1,fill:true,tension:.4,pointRadius:2,pointHoverRadius:6,pointBackgroundColor:colors.cyan,borderWidth:2},
+      {label:'Packing',data:packVals,borderColor:colors.green,backgroundColor:g2,fill:true,tension:.4,pointRadius:2,pointHoverRadius:6,pointBackgroundColor:colors.green,borderWidth:2},
+    ]
+  },options:{plugins:{legend:{display:true,position:'bottom',labels:{color:colors.text,font:{family:'JetBrains Mono',size:11},padding:14,boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'circle'}}},scales:{x:{ticks:{maxTicksLimit:15}}}}});
+
+  const typeDates=Object.keys(D.pick_types).filter(d=>inRange(d)).sort();
+  makeChart('chart-type-trend',{type:'bar',data:{labels:typeDates.map(fmtDate),
+    datasets:[
+      {label:'Single',data:typeDates.map(d=>D.pick_types[d]?.Single||0),backgroundColor:colors.accent+'cc',stack:'a',borderRadius:2},
+      {label:'Multiple',data:typeDates.map(d=>D.pick_types[d]?.Multiple||0),backgroundColor:colors.purple+'cc',stack:'a',borderRadius:2},
+      {label:'Bulk',data:typeDates.map(d=>D.pick_types[d]?.Bulk||0),backgroundColor:colors.amber+'cc',stack:'a',borderRadius:2},
+    ]
+  },options:{plugins:{legend:{display:true,position:'bottom',labels:{color:colors.text,font:{family:'JetBrains Mono',size:10},padding:10,boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'rectRounded'}}},scales:{x:{stacked:true,ticks:{maxTicksLimit:10}},y:{stacked:true}}}});
+
+  makeChart('chart-workforce',{type:'line',data:{labels:allDates.map(fmtDate),
+    datasets:[
+      {label:'Pickers',data:allDates.map(d=>pickMap[d]?.employees||0),borderColor:colors.cyan,backgroundColor:colors.cyan+'22',tension:.3,pointRadius:2,pointHoverRadius:6,fill:false,borderWidth:2},
+      {label:'Packers',data:allDates.map(d=>packMap[d]?.employees||0),borderColor:colors.green,backgroundColor:colors.green+'22',tension:.3,pointRadius:2,pointHoverRadius:6,fill:false,borderWidth:2},
+    ]
+  },options:{plugins:{legend:{display:true,position:'bottom',labels:{color:colors.text,font:{family:'JetBrains Mono',size:10},padding:10,boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'circle'}}},scales:{x:{ticks:{maxTicksLimit:12}}}}});
+}
+</script>
+</body>
+</html>
