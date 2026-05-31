@@ -576,6 +576,14 @@ fetch("https://script.google.com/macros/s/AKfycbzXGZ3_zghrKx8ybOI3KLQqLXRpfzNwsN
   })
   .catch(err => {
     console.error("โหลด data ไม่ได้", err);
+    setInterval(() => {
+  fetch("https://script.google.com/macros/s/AKfycbzXGZ3_zghrKx8ybOI3KLQqLXRpfzNwsN2lUl4u_1DNHRlSaifbxHZToBHHm5di-uplfQ/exec")
+    .then(res => res.json())
+    .then(data => {
+      D = data;
+      renderAll();
+    });
+}, 60000); // ทุก 60 วิ
   });
 ``
 initFilters();
