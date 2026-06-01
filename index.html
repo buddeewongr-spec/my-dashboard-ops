@@ -257,6 +257,25 @@ tr:hover td{background:rgba(6,212,232,.04);color:var(--text)}
 @keyframes shimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
 .shimmer{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:400px 100%;animation:shimmer 1.4s linear infinite;border-radius:6px;color:transparent!important}
 
+/* LOADING OVERLAY */
+.loading-overlay{position:fixed;inset:0;background:var(--bg0);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s}
+.loading-overlay.fade-out{opacity:0;pointer-events:none}
+.loading-spinner{width:50px;height:50px;border:3px solid var(--border2);border-top-color:var(--cyan);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-family:'Orbitron',sans-serif;font-size:12px;color:var(--cyan);letter-spacing:3px;text-transform:uppercase;animation:loadPulse 1.5s ease-in-out infinite}
+@keyframes loadPulse{0%,100%{opacity:.5}50%{opacity:1}}
+.loading-sub{font-size:11px;color:var(--text3);margin-top:8px}
+.loading-error{color:var(--red);margin-top:12px;font-size:12px;max-width:400px;text-align:center}
+
+/* CONFIG MODAL */
+.config-modal{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:10000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.config-box{background:var(--bg1);border:1px solid var(--border2);border-radius:16px;padding:28px;max-width:520px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.config-box h2{font-family:'Orbitron',sans-serif;font-size:14px;color:var(--cyan);margin-bottom:6px;letter-spacing:1px}
+.config-box p{font-size:11px;color:var(--text3);margin-bottom:16px;line-height:1.6}
+.config-box input{width:100%;padding:10px 14px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);border-radius:8px;font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;margin-bottom:12px}
+.config-box input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px var(--cyan-glow)}
+.config-actions{display:flex;gap:8px;justify-content:flex-end}
+
 /* NOTIFICATION */
 .notif{position:fixed;bottom:20px;right:20px;background:var(--glass-strong);backdrop-filter:blur(20px);border:1px solid var(--cyan);border-radius:10px;padding:12px 16px;font-size:12px;color:var(--text);box-shadow:0 8px 32px var(--cyan-glow);z-index:1000;animation:notifIn .4s ease;display:flex;align-items:center;gap:10px}
 @keyframes notifIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
@@ -267,6 +286,13 @@ tr:hover td{background:rgba(6,212,232,.04);color:var(--text)}
 <body>
 
 <div class="scan-line"></div>
+
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">Initializing</div>
+  <div class="loading-sub" id="loading-sub">Connecting to data source...</div>
+  <div class="loading-error" id="loading-error" style="display:none"></div>
+</div>
 
 <div class="sidebar">
   <div class="logo">
@@ -311,6 +337,10 @@ tr:hover td{background:rgba(6,212,232,.04);color:var(--text)}
       <span id="themeIcon">☀</span>
       <span id="themeLabel">Light Mode</span>
     </button>
+    <button class="theme-toggle" onclick="showConfig()" style="margin-top:6px">
+      <span>⚙</span>
+      <span>Data Source</span>
+    </button>
   </div>
 </div>
 
@@ -337,7 +367,7 @@ tr:hover td{background:rgba(6,212,232,.04);color:var(--text)}
       <div class="live-dot"></div>
       <span id="refresh-status-text">LIVE</span>
     </div>
-    <button class="btn btn-primary" onclick="applyFilters()">⟳ SYNC</button>
+    <button class="btn btn-primary" onclick="fetchData()">⟳ SYNC</button>
   </div>
 
   <div class="content">
@@ -561,38 +591,98 @@ function startClock(){
 }
 
 // ===== INIT =====
-fetch("https://script.google.com/macros/s/AKfycbzXGZ3_zghrKx8ybOI3KLQqLXRpfzNwsN2lUl4u_1DNHRlSaifbxHZToBHHm5di-uplfQ/exec")
-  .then(res => res.json())
-  .then(data => {
-    console.log("Loaded data:", data); // debug
+const STORAGE_KEY = 'neo_dashboard_url';
+let refreshTimer = null;
+const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 min
+
+function getScriptUrl() { return localStorage.getItem(STORAGE_KEY) || ''; }
+function setScriptUrl(url) { localStorage.setItem(STORAGE_KEY, url); }
+
+async function fetchData() {
+  const url = getScriptUrl();
+  if (!url) {
+    showConfigModal();
+    return;
+  }
+  const overlay = document.getElementById('loading-overlay');
+  const sub = document.getElementById('loading-sub');
+  const errEl = document.getElementById('loading-error');
+
+  if (!D) { overlay.style.display = 'flex'; overlay.classList.remove('fade-out'); }
+  sub.textContent = 'Fetching data from Google Sheets...';
+  errEl.style.display = 'none';
+  document.getElementById('refresh-status-text').textContent = 'SYNCING...';
+
+  try {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
 
     D = data;
-
     initFilters();
     initHrsDateFilter();
     initIndivFilter();
     renderAll();
 
-  })
-  .catch(err => {
-  console.error("โหลด data ไม่ได้", err);
-});
-
-// ✅ AUTO REFRESH
-setInterval(() => {
-  fetch("https://script.google.com/macros/s/AKfycbzXGZ3_zghrKx8ybOI3KLQqLXRpfzNwsN2lUl4u_1DNHRlSaifbxHZToBHHm5di-uplfQ/exec")
-    .then(res => res.json())
-    .then(data => {
-      D = data;
-      renderAll();
-    });
-}, 60000);
-
-// ✅ START CLOCK
-startClock();
-function startAutoRefresh(){
-  // Static version - no auto-refresh
+    overlay.classList.add('fade-out');
+    setTimeout(() => { overlay.style.display = 'none'; }, 500);
+    document.getElementById('refresh-status-text').textContent = 'LIVE • ' + new Date().toLocaleTimeString('en-GB');
+    showNotif('✓ Data synced');
+  } catch (e) {
+    console.error('Fetch error:', e);
+    errEl.textContent = '⚠ ' + e.message + ' — check URL or network';
+    errEl.style.display = 'block';
+    sub.textContent = 'Failed to load data';
+    document.getElementById('refresh-status-text').textContent = 'ERROR';
+    if (!D) {
+      // Show config if never loaded
+      setTimeout(() => showConfigModal(), 1500);
+    }
+  }
 }
+
+function startAutoRefresh() {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(() => {
+    if (getScriptUrl()) fetchData();
+  }, REFRESH_INTERVAL);
+}
+
+function showConfigModal() {
+  const existing = document.getElementById('config-modal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.className = 'config-modal';
+  modal.id = 'config-modal';
+  modal.innerHTML = `<div class="config-box">
+    <h2>⚙ DATA SOURCE SETUP</h2>
+    <p>Paste your Google Apps Script Web App URL below.<br>
+    Deploy the script: Extensions → Apps Script → Deploy → Web app<br>
+    Execute as: <strong>Me</strong> &nbsp;|&nbsp; Access: <strong>Anyone</strong></p>
+    <input type="text" id="config-url" placeholder="https://script.google.com/macros/s/.../exec" value="${getScriptUrl()}"/>
+    <div class="config-actions">
+      ${D ? '<button class="btn" onclick="closeConfig()">Cancel</button>' : ''}
+      <button class="btn btn-primary" onclick="saveConfig()">Connect & Load</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('config-url').focus();
+}
+function showConfig() { showConfigModal(); }
+function closeConfig() { const m = document.getElementById('config-modal'); if (m) m.remove(); }
+function saveConfig() {
+  const url = document.getElementById('config-url').value.trim();
+  if (!url) return;
+  setScriptUrl(url);
+  closeConfig();
+  fetchData();
+}
+
+// Boot
+startClock();
+fetchData();
+startAutoRefresh();
 
 function showNotif(msg){
   const n=document.createElement('div');
@@ -607,18 +697,30 @@ function initFilters(){
   const dates=D.all_dates.filter(d=>d);
   document.getElementById('f-date-from').value=dates[Math.max(0,dates.length-30)];
   document.getElementById('f-date-to').value=dates[dates.length-1];
+  // Populate store dropdown dynamically
+  const storeSel=document.getElementById('f-store');
+  const curStore=storeSel.value;
+  storeSel.innerHTML='<option value="">ALL STORES</option>';
+  const stores=Object.keys(D.backlog_stores||{}).sort();
+  stores.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;storeSel.appendChild(o);});
+  if(curStore)storeSel.value=curStore;
 }
 function initHrsDateFilter(){
   const sel=document.getElementById('f-hrs-date');
+  const curVal=sel.value;
+  sel.innerHTML='';
   D.hrs_dates.slice().reverse().forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;sel.appendChild(o);});
+  if(curVal && D.hrs_dates.includes(curVal)) sel.value=curVal;
 }
-function initIndivFilter(){populateIndivSelect('picker');}
+function initIndivFilter(){populateIndivSelect(indivRole);}
 function populateIndivSelect(role){
   const sel=document.getElementById('f-individual');
+  const curVal=sel.value;
   sel.innerHTML='<option value="">— Select —</option>';
   const names=role==='picker'?D.all_pickers:D.all_packers;
   names.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});
-  sel.value='';
+  if(curVal && names.includes(curVal)) sel.value=curVal;
+  else sel.value='';
 }
 function getDateRange(){return {from:document.getElementById('f-date-from').value, to:document.getElementById('f-date-to').value};}
 function inRange(d){const r=getDateRange();return(!r.from||d>=r.from)&&(!r.to||d<=r.to);}
