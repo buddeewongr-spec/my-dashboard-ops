@@ -259,6 +259,34 @@ tr:hover td{background:rgba(6,212,232,.04);color:var(--text)}
 
 /* LOADING OVERLAY */
 .loading-overlay{position:fixed;inset:0;background:var(--bg0);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .5s}
+
+/* ALERTS */
+.alert-card{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:16px 20px;margin-bottom:10px;display:flex;align-items:center;gap:14px;transition:.2s}
+.alert-card:hover{border-color:var(--border3)}
+.alert-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.alert-icon.critical{background:rgba(239,68,68,.15);color:var(--red)}
+.alert-icon.warning{background:rgba(251,191,36,.15);color:var(--amber)}
+.alert-icon.ok{background:rgba(16,220,139,.15);color:var(--green)}
+.alert-body{flex:1}
+.alert-title{font-weight:600;font-size:13px;margin-bottom:2px}
+.alert-desc{font-size:11px;color:var(--text3)}
+.alert-val{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;flex-shrink:0}
+
+/* KPI TREND */
+.kpi-trend{font-size:10px;font-family:'JetBrains Mono',monospace;margin-top:2px;display:flex;align-items:center;gap:4px}
+.kpi-trend.up{color:var(--green)}
+.kpi-trend.down{color:var(--red)}
+.kpi-trend.flat{color:var(--text3)}
+
+/* PROGRESS PIPELINE */
+.pipeline-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:18px 22px;margin-bottom:8px}
+.pipeline-row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.pipeline-row:last-child{margin-bottom:0}
+.pipeline-label{width:120px;font-size:11px;font-weight:600;color:var(--text2);flex-shrink:0}
+.pipeline-bar-bg{flex:1;height:22px;background:var(--bg3);border-radius:6px;overflow:hidden;position:relative}
+.pipeline-bar{height:100%;border-radius:6px;transition:width 1s ease;position:relative}
+.pipeline-bar::after{content:attr(data-val);position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;font-family:'JetBrains Mono',monospace;color:#fff;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.5)}
+.pipeline-pct{width:50px;text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);flex-shrink:0}
 .loading-overlay.fade-out{opacity:0;pointer-events:none}
 .loading-spinner{width:50px;height:50px;border:3px solid var(--border2);border-top-color:var(--cyan);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -317,12 +345,21 @@ tr:hover td{background:rgba(6,212,232,.04);color:var(--text)}
     <div class="nav-item" data-page="packing" onclick="showPage('packing',this)">
       <span class="nav-icon">◆</span><span>Packing</span>
     </div>
+    <div class="nav-item" data-page="shipper" onclick="showPage('shipper',this)">
+      <span class="nav-icon">⇨</span><span>Shipper</span>
+    </div>
     <div class="nav-section">ANALYTICS</div>
     <div class="nav-item" data-page="individual" onclick="showPage('individual',this)">
       <span class="nav-icon">◉</span><span>Individual</span>
     </div>
     <div class="nav-item" data-page="trends" onclick="showPage('trends',this)">
       <span class="nav-icon">⟁</span><span>Trends</span>
+    </div>
+    <div class="nav-item" data-page="sla" onclick="showPage('sla',this)">
+      <span class="nav-icon">⏱</span><span>SLA Tracking</span>
+    </div>
+    <div class="nav-item" data-page="alerts" onclick="showPage('alerts',this)">
+      <span class="nav-icon">🔔</span><span>Alerts</span>
     </div>
   </nav>
   <div class="sidebar-foot">
@@ -512,6 +549,7 @@ tr:hover td{background:rgba(6,212,232,.04);color:var(--text)}
         <div class="view-toggle">
           <button class="view-btn active" onclick="setIndivRole('picker',this)">Picker</button>
           <button class="view-btn" onclick="setIndivRole('packer',this)">Packer</button>
+          <button class="view-btn" onclick="setIndivRole('shipper',this)">Shipper</button>
         </div>
         <span class="filter-label">Employee</span>
         <select id="f-individual" onchange="renderIndividual()" style="min-width:220px"></select>
@@ -548,6 +586,76 @@ tr:hover td{background:rgba(6,212,232,.04);color:var(--text)}
           <div class="chart-header"><span class="chart-title">Active Workforce</span></div>
           <div class="chart-wrap" style="height:260px"><canvas id="chart-workforce"></canvas></div>
         </div>
+      </div>
+    </div>
+
+    <!-- SHIPPER -->
+    <div class="page" id="page-shipper">
+      <div class="section-title">SHIPPER LEADERBOARD</div>
+      <div class="chart-grid chart-grid-2" style="margin-bottom:14px">
+        <div class="chart-card">
+          <div class="chart-header"><span class="chart-title">Top Shippers</span></div>
+          <div id="lb-shippers"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><span class="chart-title">Ship Trend</span></div>
+          <div class="chart-wrap" style="height:300px"><canvas id="chart-ship-trend"></canvas></div>
+        </div>
+      </div>
+      <div class="section-title">All Shippers</div>
+      <div class="table-card">
+        <div class="table-header">
+          <span class="chart-title">Employee Performance</span>
+          <input class="table-search" type="text" id="search-shippers" placeholder="🔍 Search name..." oninput="filterShipTable()"/>
+        </div>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>#</th><th>NAME</th><th class="num-cell">Total</th><th class="num-cell">Days</th><th class="num-cell">Avg/Day</th></tr></thead>
+          <tbody id="tbl-shippers"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLA -->
+    <div class="page" id="page-sla">
+      <div class="kpi-grid" id="kpi-sla" style="margin-bottom:22px"></div>
+      <div class="chart-grid chart-grid-2" style="margin-bottom:14px">
+        <div class="chart-card">
+          <div class="chart-header"><span class="chart-title">SLA % by Date (Pick ≤5 min)</span></div>
+          <div class="chart-wrap" style="height:300px"><canvas id="chart-sla-trend"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-header"><span class="chart-title">Avg Pick Duration (min)</span></div>
+          <div class="chart-wrap" style="height:300px"><canvas id="chart-sla-duration"></canvas></div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><span class="chart-title">SLA Daily Breakdown</span></div>
+        <div class="table-scroll">
+        <table>
+          <thead><tr><th>DATE</th><th class="num-cell">Tasks</th><th class="num-cell">Orders</th><th class="num-cell">Avg Min</th><th class="num-cell">Within 5min</th><th class="num-cell">SLA %</th></tr></thead>
+          <tbody id="tbl-sla"></tbody>
+        </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="page" id="page-alerts">
+      <div class="section-title">ACTIVE ALERTS</div>
+      <div id="alert-list"></div>
+      <div class="section-title" style="margin-top:24px">THRESHOLD SETTINGS</div>
+      <div class="chart-card" style="padding:20px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:500px">
+          <label style="font-size:11px;color:var(--text2)">Backlog Warning</label>
+          <input type="number" id="th-backlog" value="500" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px"/>
+          <label style="font-size:11px;color:var(--text2)">Failed Order Warning</label>
+          <input type="number" id="th-failed" value="50" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px"/>
+          <label style="font-size:11px;color:var(--text2)">SLA Below % Warning</label>
+          <input type="number" id="th-sla" value="80" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px"/>
+        </div>
+        <button class="btn btn-primary" style="margin-top:14px" onclick="renderAlerts();showNotif('Thresholds updated')">Apply</button>
       </div>
     </div>
 
@@ -716,7 +824,7 @@ function populateIndivSelect(role){
   const sel=document.getElementById('f-individual');
   const curVal=sel.value;
   sel.innerHTML='<option value="">— Select —</option>';
-  const names=role==='picker'?D.all_pickers:D.all_packers;
+  const names=role==='picker'?D.all_pickers:role==='packer'?D.all_packers:(D.all_shippers||[]);
   names.forEach(n=>{const o=document.createElement('option');o.value=n;o.textContent=n;sel.appendChild(o);});
   if(curVal && names.includes(curVal)) sel.value=curVal;
   else sel.value='';
@@ -731,8 +839,11 @@ const pageTitles={
   hourly:'Hour-by-hour order pipeline activity',
   picking:'Picking team performance & leaderboard',
   packing:'Packing team performance & leaderboard',
+  shipper:'Shipping team performance & leaderboard',
   individual:'Individual employee deep-dive analysis',
-  trends:'Long-term operational trends & patterns'
+  trends:'Long-term operational trends & patterns',
+  sla:'Picking SLA tracking & duration analysis',
+  alerts:'Operational alerts & threshold monitoring'
 };
 function showPage(pg,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -749,8 +860,11 @@ function renderPage(pg){
   else if(pg==='hourly') renderHourly();
   else if(pg==='picking') renderPicking();
   else if(pg==='packing') renderPacking();
+  else if(pg==='shipper') renderShipper();
   else if(pg==='individual') renderIndividual();
   else if(pg==='trends') renderTrends();
+  else if(pg==='sla') renderSLA();
+  else if(pg==='alerts') renderAlerts();
 }
 
 // ===== CHART HELPERS =====
@@ -834,15 +948,30 @@ function renderOverview(){
   const allocated=D.backlog_statuses['Inventory Allocation Succeeded']||0;
   const failed=(D.backlog_statuses['Inventory Allocation Failed']||0)+(D.backlog_statuses['Obtaining Label Failed']||0);
 
+  // Trends: compare last 2 days
+  const sortedPickDates=Object.keys(D.daily_pick).filter(d=>inRange(d)).sort();
+  const lastPickDay=sortedPickDates.length?D.daily_pick[sortedPickDates[sortedPickDates.length-1]]:null;
+  const prevPickDay=sortedPickDates.length>1?D.daily_pick[sortedPickDates[sortedPickDates.length-2]]:null;
+  const sortedPackDates=Object.keys(D.daily_pack).filter(d=>inRange(d)).sort();
+  const lastPackDay=sortedPackDates.length?D.daily_pack[sortedPackDates[sortedPackDates.length-1]]:null;
+  const prevPackDay=sortedPackDates.length>1?D.daily_pack[sortedPackDates[sortedPackDates.length-2]]:null;
+  function trendHtml(cur,prev){
+    if(!cur||!prev)return'<span class="kpi-trend flat">—</span>';
+    const diff=cur-prev;const pct=prev?Math.round(diff/prev*100):0;
+    if(diff>0)return`<span class="kpi-trend up">▲ +${pct}%</span>`;
+    if(diff<0)return`<span class="kpi-trend down">▼ ${pct}%</span>`;
+    return'<span class="kpi-trend flat">— 0%</span>';
+  }
+
   const kpis=[
-    {label:'Total Pick Orders',raw:totalPick,sub:`${days} days analyzed`,color:'var(--accent)',icon:'⬡'},
-    {label:'Total Pack Orders',raw:totalPack,sub:`${days} days analyzed`,color:'var(--green)',icon:'◆'},
-    {label:'Avg Daily Pick',raw:Math.round(totalPick/(days||1)),sub:'orders / day',color:'var(--cyan)',icon:'⟁'},
-    {label:'Active Packers',raw:Math.round(avgPackEmp),sub:'avg headcount',color:'var(--purple)',icon:'◉'},
-    {label:'Ready to Ship',raw:shipped,sub:'pending handover',color:'var(--amber)',icon:'⇨'},
-    {label:'Packing Done',raw:packDone,sub:'completed today',color:'var(--cyan)',icon:'✓'},
-    {label:'In Queue',raw:allocated,sub:'awaiting ops',color:'var(--text3)',icon:'⏳'},
-    {label:'Failed/Error',raw:failed,sub:'need attention',color:'var(--red)',icon:'⚠'},
+    {label:'Total Pick Orders',raw:totalPick,sub:`${days} days analyzed`,color:'var(--accent)',icon:'⬡',trend:trendHtml(lastPickDay?.total_orders,prevPickDay?.total_orders)},
+    {label:'Total Pack Orders',raw:totalPack,sub:`${days} days analyzed`,color:'var(--green)',icon:'◆',trend:trendHtml(lastPackDay?.total_orders,prevPackDay?.total_orders)},
+    {label:'Avg Daily Pick',raw:Math.round(totalPick/(days||1)),sub:'orders / day',color:'var(--cyan)',icon:'⟁',trend:''},
+    {label:'Active Packers',raw:Math.round(avgPackEmp),sub:'avg headcount',color:'var(--purple)',icon:'◉',trend:''},
+    {label:'Ready to Ship',raw:shipped,sub:'pending handover',color:'var(--amber)',icon:'⇨',trend:''},
+    {label:'Packing Done',raw:packDone,sub:'completed today',color:'var(--cyan)',icon:'✓',trend:''},
+    {label:'In Queue',raw:allocated,sub:'awaiting ops',color:'var(--text3)',icon:'⏳',trend:''},
+    {label:'Failed/Error',raw:failed,sub:'need attention',color:'var(--red)',icon:'⚠',trend:failed>50?'<span class="kpi-trend down">⚠ HIGH</span>':''},
   ];
   const kg=document.getElementById('kpi-overview');
   kg.innerHTML='';
@@ -853,6 +982,7 @@ function renderOverview(){
       <div class="kpi-label">${k.label}</div>
       <div class="kpi-val" id="${id}" data-glow style="color:${k.color}">0</div>
       <div class="kpi-sub">${k.sub}</div>
+      ${k.trend||''}
       <div class="kpi-shimmer" style="background:linear-gradient(180deg,transparent,${k.color})"></div>
     </div>`;
   });
@@ -864,27 +994,28 @@ function renderOverview(){
     });
   },50);
 
-  // Status flow
+  // Pipeline with progress bars
   const sfEl=document.getElementById('status-flow');
   const sfItems=[
-    {name:'Allocated',val:allocated,color:'var(--accent)',glow:'var(--accent-glow)',icon:'⊡'},
-    {name:'Label Failed',val:D.backlog_statuses['Obtaining Label Failed']||0,color:'var(--amber)',glow:'var(--amber-glow)',icon:'⊠'},
-    {name:'Pack Done',val:packDone,color:'var(--cyan)',glow:'var(--cyan-glow)',icon:'◆'},
-    {name:'Ready Ship',val:shipped,color:'var(--purple)',glow:'var(--purple-glow)',icon:'⇨'},
-    {name:'Error',val:D.backlog_statuses['Inventory Allocation Failed']||0,color:'var(--red)',glow:'var(--red-glow)',icon:'⚠'},
+    {name:'Allocated',val:allocated,color:'var(--accent)'},
+    {name:'Label Failed',val:D.backlog_statuses['Obtaining Label Failed']||0,color:'var(--amber)'},
+    {name:'Pack Done',val:packDone,color:'var(--cyan)'},
+    {name:'Ready to Ship',val:shipped,color:'var(--purple)'},
+    {name:'Error',val:D.backlog_statuses['Inventory Allocation Failed']||0,color:'var(--red)'},
   ];
-  let html='';
-  sfItems.forEach((sf,idx)=>{
+  let html=`<div class="pipeline-card">`;
+  sfItems.forEach(sf=>{
     const pct=totalBacklog?Math.round(sf.val/totalBacklog*100):0;
-    html+=`<div class="sf-node" style="--sf-color:${sf.color};--sf-color-glow:${sf.glow}">
-      <div class="sf-circle" style="color:${sf.color}">${sf.icon}</div>
-      <div class="sf-name">${sf.name}</div>
-      <div class="sf-val">${fmtNum(sf.val)}</div>
-      <div class="sf-pct">${pct}% of ${fmtNum(totalBacklog)}</div>
+    html+=`<div class="pipeline-row">
+      <div class="pipeline-label">${sf.name}</div>
+      <div class="pipeline-bar-bg"><div class="pipeline-bar" style="width:0%;background:${sf.color}" data-val="${fmtNum(sf.val)}" data-w="${pct}"></div></div>
+      <div class="pipeline-pct">${pct}%</div>
     </div>`;
-    if(idx<sfItems.length-1) html+=`<div class="sf-arrow">▶</div>`;
   });
+  html+=`</div>`;
   sfEl.innerHTML=html;
+  // Animate bars
+  setTimeout(()=>{sfEl.querySelectorAll('.pipeline-bar').forEach(b=>{b.style.width=b.dataset.w+'%';});},80);
 
   document.getElementById('pick-total-badge').textContent=fmtNum(totalPick)+' ORDERS';
   document.getElementById('pack-total-badge').textContent=fmtNum(totalPack)+' ORDERS';
@@ -1108,7 +1239,8 @@ function renderIndividual(){
   if(!name){document.getElementById('individual-content').innerHTML='<div class="empty-state"><div class="empty-state-icon">◉</div>เลือกพนักงานเพื่อดูข้อมูลรายบุคคล</div>';return;}
 
   const isPickR=indivRole==='picker';
-  const byName=isPickR?D.picker_by_name:D.packer_by_name;
+  const isShipR=indivRole==='shipper';
+  const byName=isPickR?D.picker_by_name:isShipR?(D.shipper_by_name||{}):D.packer_by_name;
   const records=(byName[name]||[]).sort((a,b)=>a.d.localeCompare(b.d));
   const totalOrders=records.reduce((s,r)=>s+r.o,0);
   const days=records.length;
@@ -1116,8 +1248,8 @@ function renderIndividual(){
   const avgMin=isPickR&&records.filter(r=>r.avg>0).length?records.filter(r=>r.avg>0).reduce((s,r)=>s+r.avg,0)/records.filter(r=>r.avg>0).length:null;
   const maxDay=records.reduce((mx,r)=>r.o>mx.o?r:mx,{o:0,d:''});
   const initials=name.replace(/[^\w\u0E00-\u0E7F\s]/g,'').trim().slice(0,2).toUpperCase();
-  const col=isPickR?'var(--accent)':'var(--green)';
-  const colCss=isPickR?colors.accent:colors.green;
+  const col=isPickR?'var(--accent)':isShipR?'var(--amber)':'var(--green)';
+  const colCss=isPickR?colors.accent:isShipR?colors.amber:colors.green;
 
   const html=`
     <div class="person-card">
@@ -1125,7 +1257,7 @@ function renderIndividual(){
         <div class="avatar" style="background:linear-gradient(135deg,${col},var(--purple))">${initials}</div>
         <div>
           <div class="person-name">${name}</div>
-          <div class="person-role">${isPickR?'⬡ PICKER':'◆ PACKER'} • ${days} WORKING DAYS</div>
+          <div class="person-role">${isPickR?'⬡ PICKER':isShipR?'⇨ SHIPPER':'◆ PACKER'} • ${days} WORKING DAYS</div>
         </div>
       </div>
       <div class="person-stats">
@@ -1250,6 +1382,179 @@ function renderTrends(){
       {label:'Packers',data:allDates.map(d=>packMap[d]?.employees||0),borderColor:colors.green,backgroundColor:colors.green+'22',tension:.3,pointRadius:2,pointHoverRadius:6,fill:false,borderWidth:2},
     ]
   },options:{plugins:{legend:{display:true,position:'bottom',labels:{color:colors.text,font:{family:'JetBrains Mono',size:10},padding:10,boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'circle'}}},scales:{x:{ticks:{maxTicksLimit:12}}}}});
+}
+
+// ===== SHIPPER =====
+function renderShipper(){
+  if(!D||!D.shipper)return;
+  const colors=getChartColors();
+  const agg={};
+  D.shipper.filter(r=>inRange(r.date)).forEach(r=>{
+    if(!agg[r.name])agg[r.name]={total:0,days:0};
+    agg[r.name].total+=r.orders;agg[r.name].days+=1;
+  });
+  const sorted=Object.entries(agg).sort(([,a],[,b])=>b.total-a.total);
+  const maxV=sorted[0]?sorted[0][1].total:1;
+  const lb=document.getElementById('lb-shippers');
+  lb.innerHTML='';
+  sorted.slice(0,12).forEach(([name,v],i)=>{
+    const rk=i===0?'top1':i===1?'top2':i===2?'top3':'';
+    lb.innerHTML+=`<div class="lb-item">
+      <div class="lb-rank ${rk}">${(i+1).toString().padStart(2,'0')}</div>
+      <div class="lb-name">${name}</div>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:0%"></div></div>
+      <div class="lb-val">${fmtNum(v.total)}</div>
+    </div>`;
+  });
+  setTimeout(()=>{document.querySelectorAll('#lb-shippers .lb-bar').forEach((bar,i)=>{bar.style.width=(sorted[i][1].total/maxV*100)+'%';});},80);
+
+  const trend=Object.entries(D.daily_ship||{}).filter(([d])=>inRange(d));
+  if(document.getElementById('chart-ship-trend')){
+    const ctx=document.getElementById('chart-ship-trend').getContext('2d');
+    const grad=ctx.createLinearGradient(0,0,0,300);
+    grad.addColorStop(0,colors.amber+'66');grad.addColorStop(1,colors.amber+'00');
+    makeChart('chart-ship-trend',{type:'line',data:{labels:trend.map(([d])=>fmtDate(d)),
+      datasets:[{data:trend.map(([,v])=>v.total_orders),borderColor:colors.amber,backgroundColor:grad,fill:true,tension:.4,pointRadius:2,pointHoverRadius:6,pointBackgroundColor:colors.amber,borderWidth:2}]
+    },options:{scales:{x:{ticks:{maxTicksLimit:10}}}}});
+  }
+  renderShipTable(sorted);
+}
+let _shipSorted=[];
+function renderShipTable(s){_shipSorted=s;filterShipTable();}
+function filterShipTable(){
+  const q=(document.getElementById('search-shippers')?.value||'').toLowerCase();
+  const rows=_shipSorted.filter(([n])=>n.toLowerCase().includes(q));
+  const tbody=document.getElementById('tbl-shippers');
+  if(!tbody)return;
+  tbody.innerHTML='';
+  rows.forEach(([name,v],i)=>{
+    const avg=v.days?v.total/v.days:0;
+    tbody.innerHTML+=`<tr>
+      <td class="rank-num">${(i+1).toString().padStart(3,'0')}</td>
+      <td class="name-cell">${name}</td>
+      <td class="num-cell">${fmtNum(v.total)}</td>
+      <td class="num-cell">${v.days}</td>
+      <td class="num-cell">${fmtNum(avg)}</td>
+    </tr>`;
+  });
+}
+
+// ===== SLA =====
+function renderSLA(){
+  if(!D||!D.sla_by_date)return;
+  const colors=getChartColors();
+  const entries=Object.entries(D.sla_by_date).filter(([d])=>inRange(d)).sort(([a],[b])=>a.localeCompare(b));
+  const totalTasks=entries.reduce((s,[,v])=>s+v.total_tasks,0);
+  const totalWithin=entries.reduce((s,[,v])=>s+v.within_target,0);
+  const totalMin=entries.reduce((s,[,v])=>s+v.total_min,0);
+  const overallSLA=totalTasks?Math.round(totalWithin/totalTasks*100):0;
+  const avgDur=totalTasks?(totalMin/totalTasks).toFixed(1):0;
+
+  const kpis=[
+    {label:'Overall SLA %',raw:overallSLA,sub:'pick tasks ≤5 min',color:overallSLA>=80?'var(--green)':'var(--red)',icon:'⏱'},
+    {label:'Total Pick Tasks',raw:totalTasks,sub:`${entries.length} days`,color:'var(--accent)',icon:'⬡'},
+    {label:'Avg Duration',raw:parseFloat(avgDur),sub:'min / task',color:'var(--cyan)',icon:'◷'},
+    {label:'Within Target',raw:totalWithin,sub:'≤ 5 min',color:'var(--green)',icon:'✓'},
+  ];
+  const kg=document.getElementById('kpi-sla');
+  kg.innerHTML='';
+  kpis.forEach((k,i)=>{
+    kg.innerHTML+=`<div class="kpi-card" style="--kpi-color:${k.color}">
+      <div class="kpi-icon" style="color:${k.color}">${k.icon}</div>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-val" id="sla-k${i}" data-glow style="color:${k.color}">0</div>
+      <div class="kpi-sub">${k.sub}</div>
+      <div class="kpi-shimmer" style="background:linear-gradient(180deg,transparent,${k.color})"></div>
+    </div>`;
+  });
+  setTimeout(()=>{kpis.forEach((k,i)=>animateNumber(document.getElementById('sla-k'+i),k.raw,900));},50);
+
+  // SLA trend chart
+  const slaDates=entries.map(([d])=>fmtDate(d));
+  const slaPcts=entries.map(([,v])=>v.total_tasks?(v.within_target/v.total_tasks*100).toFixed(1):0);
+  makeChart('chart-sla-trend',{type:'line',data:{labels:slaDates,
+    datasets:[
+      {data:slaPcts,borderColor:colors.green,backgroundColor:colors.green+'22',tension:.3,pointRadius:3,pointHoverRadius:6,fill:true,borderWidth:2,label:'SLA %'},
+      {data:Array(entries.length).fill(80),borderColor:colors.red,borderDash:[5,4],pointRadius:0,fill:false,borderWidth:1.5,label:'Target 80%'}
+    ]},options:{scales:{y:{min:0,max:100},x:{ticks:{maxTicksLimit:12}}},plugins:{legend:{display:true,position:'bottom',labels:{color:colors.text,font:{family:'JetBrains Mono',size:10},padding:10,boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'circle'}}}}});
+
+  // Duration chart
+  const avgDurs=entries.map(([,v])=>v.total_tasks?(v.total_min/v.total_tasks).toFixed(1):0);
+  const ctx=document.getElementById('chart-sla-duration').getContext('2d');
+  const grad=ctx.createLinearGradient(0,0,0,300);
+  grad.addColorStop(0,colors.cyan+'cc');grad.addColorStop(1,colors.cyan+'10');
+  makeChart('chart-sla-duration',{type:'bar',data:{labels:slaDates,
+    datasets:[{data:avgDurs,backgroundColor:grad,borderColor:colors.cyan,borderWidth:1,borderRadius:4,label:'Avg Min'}]
+  },options:{scales:{x:{ticks:{maxTicksLimit:12}}}}});
+
+  // Table
+  const tbody=document.getElementById('tbl-sla');
+  if(tbody){
+    tbody.innerHTML='';
+    entries.reverse().forEach(([d,v])=>{
+      const pct=v.total_tasks?(v.within_target/v.total_tasks*100).toFixed(1):0;
+      const avgM=v.total_tasks?(v.total_min/v.total_tasks).toFixed(1):0;
+      const cls=pct>=80?'style="color:var(--green)"':'style="color:var(--red)"';
+      tbody.innerHTML+=`<tr>
+        <td style="font-family:'JetBrains Mono',monospace;color:var(--cyan)">${d}</td>
+        <td class="num-cell">${fmtNum(v.total_tasks)}</td>
+        <td class="num-cell">${fmtNum(v.total_orders)}</td>
+        <td class="num-cell">${avgM}</td>
+        <td class="num-cell">${fmtNum(v.within_target)} / ${fmtNum(v.total_tasks)}</td>
+        <td class="num-cell" ${cls}><strong>${pct}%</strong></td>
+      </tr>`;
+    });
+  }
+}
+
+// ===== ALERTS =====
+function renderAlerts(){
+  if(!D)return;
+  const thBacklog=parseInt(document.getElementById('th-backlog')?.value)||500;
+  const thFailed=parseInt(document.getElementById('th-failed')?.value)||50;
+  const thSLA=parseInt(document.getElementById('th-sla')?.value)||80;
+  const totalBacklog=Object.values(D.backlog_statuses).reduce((a,b)=>a+b,0);
+  const failed=(D.backlog_statuses['Inventory Allocation Failed']||0)+(D.backlog_statuses['Obtaining Label Failed']||0);
+
+  // SLA check
+  let lastSLA=null;
+  if(D.sla_by_date){
+    const slaDates=Object.keys(D.sla_by_date).sort();
+    if(slaDates.length){
+      const last=D.sla_by_date[slaDates[slaDates.length-1]];
+      lastSLA=last.total_tasks?(last.within_target/last.total_tasks*100).toFixed(1):null;
+    }
+  }
+
+  const alerts=[];
+  // Backlog
+  if(totalBacklog>=thBacklog)alerts.push({level:'critical',icon:'⚠',title:`Backlog Critical: ${fmtNum(totalBacklog)} orders`,desc:`Exceeds threshold of ${fmtNum(thBacklog)}`,val:fmtNum(totalBacklog)});
+  else alerts.push({level:'ok',icon:'✓',title:`Backlog Normal: ${fmtNum(totalBacklog)} orders`,desc:`Below threshold of ${fmtNum(thBacklog)}`,val:fmtNum(totalBacklog)});
+  // Failed
+  if(failed>=thFailed)alerts.push({level:'critical',icon:'⚠',title:`Failed Orders High: ${fmtNum(failed)}`,desc:`Exceeds threshold of ${fmtNum(thFailed)}. Check Inv Allocation & Label errors.`,val:fmtNum(failed)});
+  else if(failed>0)alerts.push({level:'warning',icon:'⚡',title:`Failed Orders: ${fmtNum(failed)}`,desc:`Below threshold but needs monitoring`,val:fmtNum(failed)});
+  else alerts.push({level:'ok',icon:'✓',title:'No Failed Orders',desc:'All clear',val:'0'});
+  // SLA
+  if(lastSLA!==null){
+    if(parseFloat(lastSLA)<thSLA)alerts.push({level:'warning',icon:'⏱',title:`SLA Below Target: ${lastSLA}%`,desc:`Target is ${thSLA}%. Latest day pick SLA needs improvement.`,val:lastSLA+'%'});
+    else alerts.push({level:'ok',icon:'✓',title:`SLA On Target: ${lastSLA}%`,desc:`Meeting ${thSLA}% threshold`,val:lastSLA+'%'});
+  }
+  // Shipped pending
+  const shipped=D.backlog_statuses['Start Shipping Handover']||0;
+  if(shipped>200)alerts.push({level:'warning',icon:'📦',title:`${fmtNum(shipped)} orders pending handover`,desc:'High volume waiting for carrier pickup',val:fmtNum(shipped)});
+
+  const el=document.getElementById('alert-list');
+  el.innerHTML='';
+  alerts.forEach(a=>{
+    el.innerHTML+=`<div class="alert-card">
+      <div class="alert-icon ${a.level}">${a.icon}</div>
+      <div class="alert-body">
+        <div class="alert-title">${a.title}</div>
+        <div class="alert-desc">${a.desc}</div>
+      </div>
+      <div class="alert-val" style="color:${a.level==='critical'?'var(--red)':a.level==='warning'?'var(--amber)':'var(--green)'}">${a.val}</div>
+    </div>`;
+  });
 }
 </script>
 </body>
